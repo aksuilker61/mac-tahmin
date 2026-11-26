@@ -4,8 +4,8 @@ name: Veriyi yenile ve yayınla
 # bu iş akışı index.html'i yeniden üretip main dalına işler, Pages de onu yayınlar.
 on:
   schedule:
-    # İki saatte bir, 08:17 - 00:17 arası (Türkiye saati); zamanlar UTC yazılır
-    - cron: "17 5-21/2 * * *"
+    # Her gün 08:17, 14:17 ve 18:17 (Türkiye saati); zamanlar UTC yazılır
+    - cron: "17 5,11,15 * * *"
   workflow_dispatch:
   push:
     branches: [main]

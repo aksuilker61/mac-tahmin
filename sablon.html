@@ -121,12 +121,10 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 .dugme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .bacaklar { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .bacak {
-  display: grid; grid-template-columns: 1fr 52px 46px 46px 30px; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 1fr 52px 50px 30px; gap: 10px; align-items: center;
   padding: 9px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
 }
 .bacak .mac { min-width: 0; }
-.kupon-bas-satir { border-top: 0; padding-bottom: 2px; }
-.kupon-bas-satir .etiket { text-align: right; } .kupon-bas-satir h3.etiket { text-align: left; }
 .bacak .mac b { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .bacak .mac span { color: var(--muted); font-size: 13px; }
 .bacak .yuzde { text-align: right; } .bacak .oran { text-align: right; color: var(--muted); }
@@ -142,12 +140,6 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 .cubuk i { display: block; height: 100%; background: var(--bar); border-radius: 5px; }
 .satir .yuzde { text-align: right; }
 .satir .oran { text-align: right; color: var(--muted); }
-.iddaa { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-.baslik-satir .iddaa { font-weight: 600; }
-.iddaa.deger { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.iddaali .satir { grid-template-columns: 58px minmax(16px, 1fr) 52px 46px 46px; gap: 8px; }
-.iddaali .pazar.genis .satir { grid-template-columns: 92px minmax(12px, 1fr) 52px 46px 46px; }
-.dip.uyari { color: var(--fg); font-weight: 600; }
 .satir.favori .ad, .satir.favori .yuzde { font-weight: 600; color: var(--accent); }
 .satir.favori .cubuk i { background: var(--accent); }
 .baslik-satir { color: var(--muted); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; padding-top: 0; }
@@ -162,7 +154,7 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 <div class="sayfa">
   <header>
     <h1>Maç Tahmin</h1>
-    <p class="alt">İki takımı seçin; olasılıklar ve adil oranlar anında hesaplanır. Yaklaşan maçlarda tahmin güncel İddaa oranlarına dayanır ve İddaa oranı adil oranın yanında gösterilir. Bir satıra tıklayarak seçimi kupona ekleyin.</p>
+    <p class="alt">İki takımı seçin; olasılıklar ve adil oranlar anında hesaplanır. Güncel bahis oranı yayımlanmış maçlarda tahmin o oranlara dayanır. Bir satıra tıklayarak seçimi kupona ekleyin.</p>
   </header>
 
   <section class="secim">
@@ -210,21 +202,18 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
           <button class="dugme" type="button" data-oto="orta">Orta risk</button>
           <button class="dugme" type="button" data-oto="yuksek">Yüksek risk</button>
         </div>
-        <p class="dip" id="oto-durum">Düşük risk: seçim başına adil oran 1,15–1,45. Orta: 1,40–1,85. Yüksek: 1,60–2,30. Her maçta bu aralıktaki en olası seçim alınır; İddaa programındaki maçlarda yalnızca İddaa'da oynanabilen seçenekler.</p>
+        <p class="dip" id="oto-durum">Düşük risk: seçim başına adil oran 1,15–1,45. Orta: 1,40–1,85. Yüksek: 1,60–2,30. Her maçta bu aralıktaki en olası seçim alınır.</p>
       </div>
       <div class="grup">
         <span class="etiket" id="havuz-baslik">Maçlardan kendiniz seçin</span>
         <ul class="havuz" id="havuz"></ul>
       </div>
     </div>
-    <div class="bacak kupon-bas-satir" id="kupon-ust" hidden>
-      <h3 class="etiket">Kuponunuz</h3><span class="etiket yuzde">Olasılık</span><span class="etiket oran">Adil</span><span class="etiket iddaa">İddaa</span><span></span>
-    </div>
+    <h3 class="etiket">Kuponunuz</h3>
     <p class="bos" id="kupon-bos">Kupon boş. Programın seçtiği bir kuponu alın, listeden maç ekleyin ya da yukarıdaki tahmin satırlarına tıklayın.</p>
     <ul class="bacaklar" id="bacaklar"></ul>
     <div class="toplam" id="toplam" hidden></div>
-    <p class="dip" id="iddaa-not" hidden></p>
-    <p class="dip">Her maçtan tek seçim alınır. Toplam olasılık, maçlar birbirinden bağımsız sayılarak çarpılır. Adil oran komisyonsuzdur; İddaa oranı İddaa'nın payını içerdiği için daha düşüktür.</p>
+    <p class="dip">Her maçtan tek seçim alınır. Toplam olasılık, maçlar birbirinden bağımsız sayılarak çarpılır. Adil oran komisyonsuzdur; bahis sitesindeki oran daha düşük olur.</p>
   </section>
 
   <p class="not" id="not"></p>
@@ -266,10 +255,7 @@ function tahmin(lig, ev, dep, oran) {
     if (m[1] > 0 && m[2] > 0) kg += p;
   }
   ms.sort((a, b) => b[0] - a[0]);
-  let s = ev[3] + dep[3] - lig.pay;
-  if (oran && oran[7])   // ilk yarı oranı varsa ilk yarı gol payı da ağırlıklı olarak piyasadan
-    s = VERI.piyasaPayi * oran[7] / (oran[3] + oran[4]) + (1 - VERI.piyasaPayi) * s;
-  s = Math.min(Math.max(s, 0.30), 0.60);
+  const s = Math.min(Math.max(ev[3] + dep[3] - lig.pay, 0.30), 0.60);
   const l1 = s * (le + ld), l2 = (1 - s) * (le + ld);
   const y1 = [], y2 = [];
   for (let k = 0; k < N; k++) { y1.push(poisson(l1, k)); y2.push(poisson(l2, k)); }
@@ -365,13 +351,6 @@ function macSaati(m) {
   return iki(t.getDate()) + "." + iki(t.getMonth() + 1) + " " + iki(t.getHours()) + ":" + iki(t.getMinutes());
 }
 
-// Bir seçimin İddaa oranı ve MBS'i: {oran, mbs}; İddaa'da yoksa null
-function iddaaOrani(lig, evAd, depAd, pazar, secim) {
-  const m = lig.yaklasan.find(x => x[0] === evAd && x[1] === depAd);
-  const p = m && m[6] && m[6][VERI.iddaaPazar.indexOf(pazar)];
-  return p && p[1][secim] ? { oran: p[1][secim], mbs: p[0] } : null;
-}
-
 // ---- Kupon ----
 let kupon = [];
 try { kupon = JSON.parse(localStorage.getItem("mac-tahmin-kupon") || "[]"); } catch (e) { kupon = []; }
@@ -401,13 +380,9 @@ function kuponCiz() {
   const liste = $("bacaklar"), toplam = $("toplam");
   liste.textContent = ""; toplam.textContent = "";
   $("kupon-bos").hidden = kupon.length > 0; toplam.hidden = !kupon.length; $("temizle").hidden = !kupon.length;
-  if (!kupon.length) $("iddaa-not").hidden = true;
-  $("kupon-ust").hidden = !kupon.length;
-  let carpim = 1, iddaaCarpim = 1, iddaaVar = 0, mbs = 1;
+  let carpim = 1;
   for (const k of kupon) {
     const ol = bacakOlasiligi(k); carpim *= ol;
-    const io = iddaaOrani(VERI.ligler.find(l => l.kod === k.lig), k.ev, k.dep, k.pazar, k.secim);
-    if (io) { iddaaCarpim *= io.oran; iddaaVar++; mbs = Math.max(mbs, io.mbs); }
     const li = el("li", "bacak"), mac = el("div", "mac");
     const kl = VERI.ligler.find(l => l.kod === k.lig);
     const km = kl.yaklasan.find(m => m[0] === k.ev && m[1] === k.dep);
@@ -416,8 +391,7 @@ function kuponCiz() {
     const sil = el("button", "sil", "✕"); sil.type = "button";
     sil.setAttribute("aria-label", k.ev + " – " + k.dep + " seçimini kupondan çıkar");
     sil.addEventListener("click", () => { kupon = kupon.filter(x => x !== k); kuponKaydet(); kuponCiz(); ciz(); });
-    li.append(mac, el("span", "yuzde", "%" + tr(ol * 100, 1)), el("span", "oran", tr(1 / Math.max(ol, 1e-9), 2)),
-              el("span", "iddaa", io ? tr(io.oran, 2) : "–"), sil);
+    li.append(mac, el("span", "yuzde", "%" + tr(ol * 100, 1)), el("span", "oran", tr(1 / Math.max(ol, 1e-9), 2)), sil);
     liste.appendChild(li);
   }
   kurCiz();
@@ -425,19 +399,6 @@ function kuponCiz() {
   const kutu = (etiket, deger, sinif) => { const d = el("div", "buyuk" + (sinif || "")); d.append(el("small", "", etiket), deger); return d; };
   toplam.append(kutu("Maç", String(kupon.length)), kutu("Tutma olasılığı", "%" + tr(carpim * 100, 1), " vurgu"),
                 kutu("Toplam adil oran", tr(1 / Math.max(carpim, 1e-9), 2)));
-  const not = $("iddaa-not"); not.hidden = !iddaaVar; not.className = "dip";
-  if (iddaaVar === kupon.length) {
-    toplam.append(kutu("Toplam İddaa oranı", tr(iddaaCarpim, 2)));
-    const geri = Math.round(iddaaCarpim * carpim * 100);
-    not.textContent = "Bu kuponda 100 TL'lik bahis tutarsa " + Math.round(iddaaCarpim * 100) + " TL öder; programın olasılığına göre uzun vadede 100 TL'ye ortalama " + geri + " TL geri döner." +
-      (geri >= 100 ? " 100'ün üstü, programın İddaa'dan farklı düşündüğünü gösterir; bu çoğu zaman gerçek bir fırsat değil, modelin o pazardaki hatasıdır." : "");
-  } else if (iddaaVar) {
-    not.textContent = iddaaVar + " seçimin İddaa oranı var, " + (kupon.length - iddaaVar) + " seçim İddaa programında bulunamadı; toplam İddaa oranı hesaplanamadı.";
-  }
-  if (iddaaVar && kupon.length < mbs) {
-    not.className = "dip uyari";
-    not.textContent = "MBS kuralı: bu seçimlerle kupon en az " + mbs + " maç içermeli; şu an " + kupon.length + " maç var. " + not.textContent;
-  }
 }
 // ---- Kupon kurucu: gün ve lig süzgeci, risk düzeyine göre otomatik kupon, maç listesi ----
 const OTO_PAZARLAR = ["Maç Sonucu (1X2)", "1.5 Gol Alt/Üst", "2.5 Gol Alt/Üst", "3.5 Gol Alt/Üst",
@@ -474,7 +435,7 @@ function havuz(g, ligSuz) {
   }
   return sonuc.sort((a, b) => (a.m[5] || 0) - (b.m[5] || 0));
 }
-// Bir maçta adil oranı [alt, ust] aralığına düşen en olası seçim (İddaa'lı maçta yalnız oynanabilenler)
+// Bir maçta adil oranı [alt, ust] aralığına düşen en olası seçim
 function enIyiSecim(lig, m, alt, ust) {
   const ev = lig.takimlar.find(t => t[0] === m[0]), dep = lig.takimlar.find(t => t[0] === m[1]);
   let en = null;
@@ -482,8 +443,6 @@ function enIyiSecim(lig, m, alt, ust) {
     if (!OTO_PAZARLAR.includes(baslik)) continue;
     for (const [secim, ol] of secenekler) {
       const oran = 1 / Math.max(ol, 1e-9);
-      const io = iddaaOrani(lig, m[0], m[1], baslik, secim);
-      if (m[6] && !io) continue;                 // İddaa'da oynanamayan seçenek
       if (oran >= alt && oran <= ust && (!en || ol > en.ol))
         en = { id: lig.kod + "|" + m[0] + "|" + m[1], lig: lig.kod, ev: m[0], dep: m[1], pazar: baslik, secim, ol };
     }
@@ -610,10 +569,8 @@ function ciz() {
   const macId = lig.kod + "|" + ev[0] + "|" + dep[0];
   const durum = $("durum");
   durum.className = "durum" + (oran ? " var" : "");
-  const idd = !!(oran && oran[6]);
-  kutu.classList.toggle("iddaali", idd);
   durum.textContent = oran
-    ? (idd ? "İddaa oranları dahil: " : "Bahis piyasası dahil: ") + oran[2] + " tarihli maçın güncel oranları"
+    ? "Bahis piyasası dahil: " + oran[2] + " tarihli maçın güncel oranları"
     : "Bu maç için güncel bahis oranı yok; takım güçleri geçmiş oranlar, goller ve xG ile hesaplandı";
   for (const b of document.querySelectorAll("#maclar button"))
     b.setAttribute("aria-pressed", String(b.dataset.ev === ev[0] && b.dataset.dep === dep[0]));
@@ -627,8 +584,7 @@ function ciz() {
     const p = el("div", "pazar" + (secenekler.some(s => s[0].length > 7) ? " genis" : ""));
     p.appendChild(el("h3", "", baslik));
     const b = el("div", "satir baslik-satir");
-    b.append(el("span", "", ""), el("span", "", ""), el("span", "yuzde", "Olasılık"), el("span", "oran", idd ? "Adil" : "Oran"));
-    if (idd) b.append(el("span", "iddaa", "İddaa"));
+    b.append(el("span", "", ""), el("span", "", ""), el("span", "yuzde", "Olasılık"), el("span", "oran", "Oran"));
     p.appendChild(b);
     const enb = Math.max(...secenekler.map(s => s[1]));
     for (const [ad, ol] of secenekler) {
@@ -640,12 +596,6 @@ function ciz() {
       const c = el("div", "cubuk"), i = el("i");
       i.style.width = (ol * 100).toFixed(1) + "%"; c.appendChild(i);
       s.append(el("span", "ad", ad), c, el("span", "yuzde", "%" + tr(ol * 100, 1)), el("span", "oran", tr(1 / Math.max(ol, 1e-9), 2)));
-      if (idd) {
-        const io = iddaaOrani(lig, ev[0], dep[0], baslik, ad);
-        const h = el("span", "iddaa" + (io && io.oran * ol > 1 ? " deger" : ""), io ? tr(io.oran, 2) : "–");
-        if (io && io.oran * ol > 1) h.title = "İddaa oranı programın adil oranından yüksek; çoğu zaman modelin bu pazardaki hatasını gösterir";
-        s.append(h);
-      }
       p.appendChild(s);
     }
     kutu.appendChild(p);
@@ -655,7 +605,7 @@ function ciz() {
     lig.mac + " maç, son veri " + lig.son + ". " +
     (lig.tur === "kupa" ? "Takım gücü, kendi ligindeki güç ile ligin Avrupa'daki düzeyinin çarpımıdır. " : "") +
     (verisiz.length ? verisiz.join(" ve ") + " için ulusal lig verisi yok; gücü yalnızca Avrupa maçlarından tahmin edildi, belirsizlik daha yüksek. " : "") +
-    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. İddaa sütunu iddaa.com programındaki orandır ve İddaa'nın payını içerir; oynamadan önce güncel oranı ve MBS'yi İddaa'da doğrulayın. İddaa 18 yaşından büyükler içindir. Kaynaklar: yaklaşan maç oranları iddaa.com; sonuçlar, xG ve geçmiş oranlar football-data.co.uk; Avrupa kupaları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır; gün içinde iki saatte bir yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
+    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. Kaynaklar: sonuçlar, xG ve bahis şirketlerinin ortalama oranları football-data.co.uk; Avrupa kupaları ve oranları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır ve günde üç kez yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
 }
 
 for (const [tur, baslik] of [["kupa", "Avrupa kupaları"], ["lig", "Ulusal ligler"]]) {

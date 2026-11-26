@@ -53,13 +53,6 @@ Her çalıştırmada güncel veri indirilir (2 saatlik önbellek):
 - **ESPN skor servisi**: Avrupa kupası sonuçları ve yaklaşan kupa maçlarının
   güncel oranları.
 
-- **iddaa.com program servisi** (`iddaa.py`): yaklaşan maçların İddaa oranları
-  ve MBS. İddaa'da bulunan maçta beklenen goller bu oranlardan çözülür; sayfada
-  ve komut satırında her seçimin adil oranının yanında İddaa oranı gösterilir.
-  Kupon toplam İddaa oranını, beklenen geri dönüşü ve MBS kuralını hesaplar.
-  Servis belgelenmiş bir API değildir; erişilemezse program diğer kaynaklarla
-  çalışmaya devam eder.
-
 Oranlar iki yerde kullanılır (`piyasa.py`):
 
 1. **Takım güçleri.** Her geçmiş maçın oranlarından bahis şirketi payı
@@ -100,8 +93,8 @@ seçer. Aynı maçlar listelenir; listeden tek tek eklenip karma kupon yapılabi
 python3 web_olustur.py --tam index.html   # sablon.html + güncel veri
 ```
 
-`.github/workflows/yenile.yml` iki saatte bir (08:17 - 00:17 Türkiye saati)
-`index.html` dosyasını yeniden üretip `main` dalına işler; GitHub Pages
+`.github/workflows/yenile.yml` günde üç kez (08:17, 14:17, 18:17 Türkiye
+saati) `index.html` dosyasını yeniden üretip `main` dalına işler; GitHub Pages
 de onu yayınlar. Pages ayarı "Deploy from a branch", dal `main`, klasör `/`
 olmalıdır. Elle yenilemek için: Actions → "Veriyi yenile ve yayınla" →
 Run workflow.

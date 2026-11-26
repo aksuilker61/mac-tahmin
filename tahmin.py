@@ -301,8 +301,7 @@ def _sonuc(x, y):
 
 
 def tahmin_et(model, ev, dep, piyasa_gol=None):
-    """piyasa_gol: bu maçın güncel oranlarından çözülen beklenen goller:
-    (ev, dep) ya da (ev, dep, ilk yarı toplamı)."""
+    """piyasa_gol: bu maçın güncel oranlarından çözülen (ev, dep) beklenen gol."""
     le, ld = model["lamdalar"](ev, dep)
     if piyasa_gol and piyasa_gol[0] is not None:
         le = PIYASA_PAYI * piyasa_gol[0] + (1 - PIYASA_PAYI) * le
@@ -323,9 +322,6 @@ def tahmin_et(model, ev, dep, piyasa_gol=None):
 
     # Yarılar: toplam gol beklentisi ilk yarı payına göre bölünür
     s = model["pay"][ev] + model["pay"][dep] - model["lig_pay"]
-    if piyasa_gol and len(piyasa_gol) > 2 and piyasa_gol[2] and piyasa_gol[0] is not None:
-        # İlk yarı oranı varsa ilk yarı gol payı da ağırlıklı olarak piyasadan alınır
-        s = PIYASA_PAYI * piyasa_gol[2] / (piyasa_gol[0] + piyasa_gol[1]) + (1 - PIYASA_PAYI) * s
     s = min(max(s, 0.30), 0.60)
     l1, l2 = s * (le + ld), (1 - s) * (le + ld)
     y1 = [poisson(l1, k) for k in range(n)]
@@ -418,8 +414,7 @@ def tahmin_et(model, ev, dep, piyasa_gol=None):
     }
 
 
-def yazdir(ev, dep, lig_adi, mac_sayisi, son_tarih, sonuc, uyari=None, oran=None, idd=None):
-    """idd: bu maçın İddaa oranları (iddaa.yaklasan çıktısındaki kayıt) ya da None."""
+def yazdir(ev, dep, lig_adi, mac_sayisi, son_tarih, sonuc, uyari=None, oran=None):
     le, ld, l1, l2 = sonuc["beklenen"]
     print()
     print("=" * 52)
@@ -431,8 +426,7 @@ def yazdir(ev, dep, lig_adi, mac_sayisi, son_tarih, sonuc, uyari=None, oran=None
     if sonuc.get("korner"):
         print("  Beklenen korner: %.1f - %.1f (toplam %.1f)" % (sonuc["korner"] + (sum(sonuc["korner"]),)))
     if oran:
-        print("  Bahis piyasası: %s tarihli maçın güncel %soranları dahil" % (
-            oran[0].strftime("%d.%m.%Y"), "İddaa " if idd else ""))
+        print("  Bahis piyasası: %s tarihli maçın güncel oranları dahil" % oran[0].strftime("%d.%m.%Y"))
         print("  (piyasanın beklediği gol %.2f - %.2f)" % (oran[1], oran[2]))
     else:
         print("  Bu maç için güncel bahis oranı yok; takım güçleri geçmiş")
@@ -440,24 +434,18 @@ def yazdir(ev, dep, lig_adi, mac_sayisi, son_tarih, sonuc, uyari=None, oran=None
     for baslik, secenekler in sonuc["pazarlar"]:
         favori = max(p for _, p in secenekler)
         print()
-        io = idd["oran"].get(baslik, {}) if idd else {}
-        print("  " + baslik + ("   (MBS %d)" % idd["pazar_mbs"][baslik] if io else ""))
+        print("  " + baslik)
         print("  " + "-" * 40)
         for ad, p in secenekler:
-            print("  %-11s %% %5.1f    adil %6.2f %s%s" % (
-                ad, 100 * p, 1 / max(p, 1e-9),
-                ("   İddaa %6.2f" % io[ad]) if ad in io else ("   İddaa      -" if idd else ""),
-                "  <--" if p == favori else ""))
+            print("  %-11s %% %5.1f    oran %6.2f %s" % (ad, 100 * p, 1 / max(p, 1e-9),
+                                                       "  <--" if p == favori else ""))
     print()
     print("  En olası skorlar: " + ",  ".join("%d-%d (%%%.0f)" % (x, y, 100 * p)
                                              for p, x, y in sonuc["skorlar"]))
     print()
     if uyari:
         print("  Not: " + uyari)
-    if idd:
-        print("  İddaa sütunu iddaa.com programındaki orandır; oynamadan önce")
-        print("  güncel oranı ve MBS'yi İddaa'da doğrulayın.")
-    print("  Adil oran = 1 / olasılık (komisyonsuz). İstatistiksel")
+    print("  Oran = 1 / olasılık (komisyonsuz adil oran). İstatistiksel")
     print("  tahmindir; sakatlık, kadro, motivasyon gibi etkenleri bilmez.")
     print()
 
@@ -520,10 +508,8 @@ def main():
     yaklasan = yaklasan_ulusal()
     if kupa_takim:
         yaklasan.update(avrupa.yaklasan(veri, bugun))
-    import iddaa
-    idd = iddaa.birlestir(yaklasan, lig_takimlari).get((kod, ev_ad, dep_ad))
     oran = yaklasan.get((kod, ev_ad, dep_ad))
-    piyasa_gol = (oran[1:3] + tuple(oran[4:5])) if oran else None
+    piyasa_gol = oran[1:3] if oran else None
 
     if kod in kupa_adi:
         model = avrupa.model_kur(veri, bugun)
@@ -533,12 +519,12 @@ def main():
             uyari = ("%s için ulusal lig verisi yok; gücü yalnızca Avrupa\n  maçlarından "
                      "tahmin edildi, belirsizlik daha yüksek." % " ve ".join(verisiz))
         yazdir(ev_ad, dep_ad, kupa_adi[kod] + " (son 3 yılın Avrupa maçları)", model["mac"],
-               model["son"], tahmin_et(model, ev_ad, dep_ad, piyasa_gol), uyari, oran, idd)
+               model["son"], tahmin_et(model, ev_ad, dep_ad, piyasa_gol), uyari, oran)
     else:
         maclar = veri["ulusal"][kod][1]
         model = model_kur(maclar, bugun)
         yazdir(ev_ad, dep_ad, LIGLER[kod], len(maclar), max(m[0] for m in maclar),
-               tahmin_et(model, ev_ad, dep_ad, piyasa_gol), oran=oran, idd=idd)
+               tahmin_et(model, ev_ad, dep_ad, piyasa_gol), oran=oran)
 
 
 if __name__ == "__main__":
