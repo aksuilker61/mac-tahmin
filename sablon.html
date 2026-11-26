@@ -655,7 +655,7 @@ function ciz() {
     lig.mac + " maç, son veri " + lig.son + ". " +
     (lig.tur === "kupa" ? "Takım gücü, kendi ligindeki güç ile ligin Avrupa'daki düzeyinin çarpımıdır. " : "") +
     (verisiz.length ? verisiz.join(" ve ") + " için ulusal lig verisi yok; gücü yalnızca Avrupa maçlarından tahmin edildi, belirsizlik daha yüksek. " : "") +
-    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. İddaa sütunu iddaa.com programındaki orandır ve İddaa'nın payını içerir; oynamadan önce güncel oranı ve MBS'yi İddaa'da doğrulayın. İddaa 18 yaşından büyükler içindir. Kaynaklar: yaklaşan maç oranları iddaa.com; sonuçlar, xG ve geçmiş oranlar football-data.co.uk; Avrupa kupaları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır ve günde bir kez yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
+    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. İddaa sütunu iddaa.com programındaki orandır ve İddaa'nın payını içerir; oynamadan önce güncel oranı ve MBS'yi İddaa'da doğrulayın. İddaa 18 yaşından büyükler içindir. Kaynaklar: yaklaşan maç oranları iddaa.com; sonuçlar, xG ve geçmiş oranlar football-data.co.uk; Avrupa kupaları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır; gün içinde iki saatte bir yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
 }
 
 for (const [tur, baslik] of [["kupa", "Avrupa kupaları"], ["lig", "Ulusal ligler"]]) {
