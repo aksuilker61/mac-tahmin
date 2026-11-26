@@ -53,6 +53,13 @@ Her çalıştırmada güncel veri indirilir (2 saatlik önbellek):
 - **ESPN skor servisi**: Avrupa kupası sonuçları ve yaklaşan kupa maçlarının
   güncel oranları.
 
+- **iddaa.com program servisi** (`iddaa.py`): yaklaşan maçların İddaa oranları
+  ve MBS. İddaa'da bulunan maçta beklenen goller bu oranlardan çözülür; sayfada
+  ve komut satırında her seçimin adil oranının yanında İddaa oranı gösterilir.
+  Kupon toplam İddaa oranını, beklenen geri dönüşü ve MBS kuralını hesaplar.
+  Servis belgelenmiş bir API değildir; erişilemezse program diğer kaynaklarla
+  çalışmaya devam eder.
+
 Oranlar iki yerde kullanılır (`piyasa.py`):
 
 1. **Takım güçleri.** Her geçmiş maçın oranlarından bahis şirketi payı
