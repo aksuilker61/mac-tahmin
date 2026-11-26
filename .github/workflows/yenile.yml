@@ -37,6 +37,7 @@ jobs:
             echo "Değişiklik yok"
           else
             git commit -m "Veri yenilemesi $(TZ=Europe/Istanbul date '+%d.%m.%Y %H:%M')"
-            git pull --rebase origin main
+            # Araya başka bir işleme girdiyse yeni üretilen sayfa geçerli sayılır
+            git pull --rebase -X theirs origin main
             git push origin HEAD:main
           fi
