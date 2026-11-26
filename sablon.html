@@ -1,0 +1,627 @@
+<title>Maç Tahmin</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Düzen: üstte maç seçimi (ev - deplasman), altında her pazar için olasılık çubukları */
+:root {
+  --bg: #f3f6f3; --panel: #ffffff; --fg: #17221b; --muted: #5d6b62;
+  --line: #d9e1da; --track: #e6ece7; --accent: #1b7a43; --accent-fg: #ffffff;
+  --bar: #9fb3a5;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101612; --panel: #18211b; --fg: #e8efe9; --muted: #9aaba0;
+    --line: #2a372e; --track: #232e26; --accent: #4cc27c; --accent-fg: #0c1a11;
+    --bar: #55695b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101612; --panel: #18211b; --fg: #e8efe9; --muted: #9aaba0;
+  --line: #2a372e; --track: #232e26; --accent: #4cc27c; --accent-fg: #0c1a11;
+  --bar: #55695b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px;
+  line-height: 1.45; padding-block: 28px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sayfa { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-family: var(--display); font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+.alt { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+.secim {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px; display: grid; gap: 12px;
+  grid-template-columns: 1fr auto 1fr; grid-template-areas: "lig lig lig" "ev degis dep";
+  align-items: end;
+}
+.alan { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.alan.lig { grid-area: lig; } .alan.ev { grid-area: ev; } .alan.dep { grid-area: dep; }
+label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+select {
+  font: inherit; font-weight: 500; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; width: 100%; min-width: 0;
+}
+#degis {
+  grid-area: degis; font: inherit; font-size: 18px; line-height: 1; cursor: pointer;
+  color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 7px; padding: 9px 12px;
+}
+#degis:hover { border-color: var(--accent); color: var(--accent); }
+select:focus-visible, #degis:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.yaklasan { display: flex; flex-direction: column; gap: 8px; }
+.yaklasan h2 { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.maclar { display: flex; flex-wrap: wrap; gap: 8px; max-height: 132px; overflow-y: auto; }
+.maclar button {
+  font: inherit; font-size: 13px; color: var(--fg); background: var(--panel); cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+  display: inline-flex; gap: 8px; align-items: baseline;
+}
+.maclar button .gun { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.maclar button:hover { border-color: var(--accent); }
+.maclar button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.maclar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ozet { display: flex; flex-direction: column; gap: 6px; }
+.durum { font-size: 13px; color: var(--muted); }
+.durum.var { color: var(--accent); font-weight: 600; }
+.skor {
+  font-family: var(--display); font-weight: 700; font-size: 22px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px;
+}
+.skor .xg { color: var(--accent); font-variant-numeric: tabular-nums; }
+.kunye { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pazarlar { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.pazar { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.pazar h3 { font-family: var(--display); font-size: 15px; font-weight: 700; margin: 0 0 10px; text-wrap: balance; }
+.bolum { grid-column: 1 / -1; font-family: var(--display); font-size: 18px; font-weight: 700; margin: 10px 0 -2px; }
+.bolum:first-child { margin-top: 0; }
+.satir {
+  display: grid; grid-template-columns: 58px 1fr 52px 50px; gap: 10px; align-items: center;
+  padding: 5px 0; font-variant-numeric: tabular-nums;
+}
+.pazar.genis .satir { grid-template-columns: 92px 1fr 52px 50px; }
+.satir .ad { font-weight: 500; white-space: nowrap; }
+button.satir {
+  font: inherit; color: inherit; background: none; border: 0; border-radius: 6px; cursor: pointer;
+  width: calc(100% + 12px); margin: 0 -6px; padding: 5px 6px; text-align: left;
+}
+button.satir:hover { background: var(--track); }
+button.satir:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.satir.secili { background: var(--track); box-shadow: inset 0 0 0 1.5px var(--accent); }
+button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
+.kupon { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.kupon-bas { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.kupon h2 { font-family: var(--display); font-size: 18px; font-weight: 700; margin: 0; }
+.kupon .bos { color: var(--muted); margin: 0; }
+.kur { display: flex; flex-direction: column; gap: 14px; }
+.grup { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.etiket { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.dizi { display: flex; flex-wrap: wrap; gap: 8px; }
+.dugme[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.dugme.kucuk { font-size: 12px; padding: 5px 10px; border-radius: 999px; }
+.havuz { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.havuz li { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 7px 10px; border-top: 1px solid var(--line); }
+.havuz li:first-child { border-top: 0; }
+.havuz .bos-satir { color: var(--muted); }
+.havuz .ac { font: inherit; color: var(--fg); background: none; border: 0; cursor: pointer; text-align: left; padding: 2px 4px; border-radius: 6px; min-width: 0; }
+.havuz .ac b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.havuz .ac span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.havuz .ac:hover b { color: var(--accent); }
+.havuz .ac:focus-visible { outline: 2px solid var(--accent); }
+.havuz .dugme { flex: none; font-variant-numeric: tabular-nums; }
+.dugme {
+  font: inherit; font-size: 13px; font-weight: 500; color: var(--fg); background: var(--bg); cursor: pointer;
+  border: 1px solid var(--line); border-radius: 7px; padding: 7px 12px;
+}
+.dugme:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.dugme:disabled { opacity: 0.5; cursor: default; }
+.dugme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bacaklar { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bacak {
+  display: grid; grid-template-columns: 1fr 52px 50px 30px; gap: 10px; align-items: center;
+  padding: 9px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
+}
+.bacak .mac { min-width: 0; }
+.bacak .mac b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.bacak .mac span { color: var(--muted); font-size: 13px; }
+.bacak .yuzde { text-align: right; } .bacak .oran { text-align: right; color: var(--muted); }
+.bacak .sil { font: inherit; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 6px; border-radius: 6px; }
+.bacak .sil:hover { color: var(--fg); background: var(--track); }
+.bacak .sil:focus-visible { outline: 2px solid var(--accent); }
+.toplam { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; border-top: 2px solid var(--fg); padding-top: 12px; }
+.toplam .buyuk { font-family: var(--display); font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; }
+.toplam .buyuk small { font-family: var(--body); font-weight: 500; font-size: 12px; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; display: block; }
+.toplam .vurgu { color: var(--accent); }
+.kupon .dip { color: var(--muted); font-size: 13px; margin: 0; }
+.cubuk { height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; }
+.cubuk i { display: block; height: 100%; background: var(--bar); border-radius: 5px; }
+.satir .yuzde { text-align: right; }
+.satir .oran { text-align: right; color: var(--muted); }
+.satir.favori .ad, .satir.favori .yuzde { font-weight: 600; color: var(--accent); }
+.satir.favori .cubuk i { background: var(--accent); }
+.baslik-satir { color: var(--muted); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; padding-top: 0; }
+.not { color: var(--muted); font-size: 13px; max-width: 65ch; margin: 0; }
+@media (max-width: 480px) {
+  .secim { grid-template-columns: 1fr; grid-template-areas: "lig" "ev" "degis" "dep"; }
+  .pazarlar { grid-template-columns: 1fr; }
+  h1 { font-size: 24px; }
+}
+</style>
+
+<div class="sayfa">
+  <header>
+    <h1>Maç Tahmin</h1>
+    <p class="alt">İki takımı seçin; olasılıklar ve adil oranlar anında hesaplanır. Güncel bahis oranı yayımlanmış maçlarda tahmin o oranlara dayanır. Bir satıra tıklayarak seçimi kupona ekleyin.</p>
+  </header>
+
+  <section class="secim">
+    <div class="alan lig"><label for="lig">Lig veya kupa</label><select id="lig"></select></div>
+    <div class="alan ev"><label for="ev">Ev sahibi</label><select id="ev"></select></div>
+    <button id="degis" type="button" title="Ev sahibi ile deplasmanı değiştir" aria-label="Ev sahibi ile deplasmanı değiştir">⇄</button>
+    <div class="alan dep"><label for="dep">Deplasman</label><select id="dep"></select></div>
+  </section>
+
+  <section class="yaklasan" id="yaklasan" hidden>
+    <h2>Oranı yayımlanmış yaklaşan maçlar</h2>
+    <div class="maclar" id="maclar"></div>
+  </section>
+
+  <section class="ozet">
+    <div class="durum" id="durum"></div>
+    <div class="skor" id="skor"></div>
+    <div class="kunye" id="kunye"></div>
+  </section>
+
+  <section class="pazarlar" id="pazarlar"></section>
+
+  <section class="kupon" aria-labelledby="kupon-baslik">
+    <div class="kupon-bas">
+      <h2 id="kupon-baslik">Kupon</h2>
+      <button class="dugme" id="temizle" type="button">Kuponu temizle</button>
+    </div>
+    <div class="kur">
+      <div class="grup">
+        <span class="etiket">Gün</span>
+        <div class="dizi" id="gunler"></div>
+      </div>
+      <div class="grup">
+        <span class="etiket">Ligler ve kupalar</span>
+        <div class="dizi" id="kapsam"></div>
+      </div>
+      <div class="grup">
+        <span class="etiket">Maç sayısı</span>
+        <div class="dizi" id="adetler"></div>
+      </div>
+      <div class="grup">
+        <span class="etiket">Programın seçtiği kupon</span>
+        <div class="dizi">
+          <button class="dugme" type="button" data-oto="dusuk">Düşük risk</button>
+          <button class="dugme" type="button" data-oto="orta">Orta risk</button>
+          <button class="dugme" type="button" data-oto="yuksek">Yüksek risk</button>
+        </div>
+        <p class="dip" id="oto-durum">Düşük risk: seçim başına adil oran 1,15–1,45. Orta: 1,40–1,85. Yüksek: 1,60–2,30. Her maçta bu aralıktaki en olası seçim alınır.</p>
+      </div>
+      <div class="grup">
+        <span class="etiket" id="havuz-baslik">Maçlardan kendiniz seçin</span>
+        <ul class="havuz" id="havuz"></ul>
+      </div>
+    </div>
+    <h3 class="etiket">Kuponunuz</h3>
+    <p class="bos" id="kupon-bos">Kupon boş. Programın seçtiği bir kuponu alın, listeden maç ekleyin ya da yukarıdaki tahmin satırlarına tıklayın.</p>
+    <ul class="bacaklar" id="bacaklar"></ul>
+    <div class="toplam" id="toplam" hidden></div>
+    <p class="dip">Her maçtan tek seçim alınır. Toplam olasılık, maçlar birbirinden bağımsız sayılarak çarpılır. Adil oran komisyonsuzdur; bahis sitesindeki oran daha düşük olur.</p>
+  </section>
+
+  <p class="not" id="not"></p>
+</div>
+
+<script>
+const VERI = __VERI__;
+const N = 13;
+const $ = id => document.getElementById(id);
+
+function poisson(lam, k) { let p = Math.exp(-lam); for (let i = 1; i <= k; i++) p *= lam / i; return p; }
+function dc(x, y, le, ld, rho) {
+  if (x === 0 && y === 0) return 1 - le * ld * rho;
+  if (x === 0 && y === 1) return 1 + le * rho;
+  if (x === 1 && y === 0) return 1 + ld * rho;
+  if (x === 1 && y === 1) return 1 - rho;
+  return 1;
+}
+
+function tahmin(lig, ev, dep, oran) {
+  let le = lig.taban * lig.ev * ev[1] * dep[2];
+  let ld = lig.taban * dep[1] * ev[2];
+  if (oran) {   // maçın güncel bahis oranlarından çözülen beklenen goller ağır basar
+    le = VERI.piyasaPayi * oran[3] + (1 - VERI.piyasaPayi) * le;
+    ld = VERI.piyasaPayi * oran[4] + (1 - VERI.piyasaPayi) * ld;
+  }
+  let top = 0, p1 = 0, px = 0, alt = 0, alt15 = 0, alt35 = 0, kg = 0; const skorlar = [];
+  const ms = [];
+  for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
+    const p = poisson(le, x) * poisson(ld, y) * dc(x, y, le, ld, lig.rho);
+    ms.push([p, x, y]); top += p;
+  }
+  for (const m of ms) {
+    const p = m[0] / top; m[0] = p;
+    if (m[1] > m[2]) p1 += p; else if (m[1] === m[2]) px += p;
+    if (m[1] + m[2] <= 1) alt15 += p;
+    if (m[1] + m[2] <= 2) alt += p;
+    if (m[1] + m[2] <= 3) alt35 += p;
+    if (m[1] > 0 && m[2] > 0) kg += p;
+  }
+  ms.sort((a, b) => b[0] - a[0]);
+  const s = Math.min(Math.max(ev[3] + dep[3] - lig.pay, 0.30), 0.60);
+  const l1 = s * (le + ld), l2 = (1 - s) * (le + ld);
+  const y1 = [], y2 = [];
+  for (let k = 0; k < N; k++) { y1.push(poisson(l1, k)); y2.push(poisson(l2, k)); }
+  let esit = 0, ilk = 0;
+  for (let a = 0; a < N; a++) { esit += y1[a] * y2[a]; for (let b = 0; b < a; b++) ilk += y1[a] * y2[b]; }
+  const iki = (1 - y1[0]) * (1 - y2[0]);
+  const kg1 = (1 - Math.exp(-s * le)) * (1 - Math.exp(-s * ld));
+  const kg2 = (1 - Math.exp(-(1 - s) * le)) * (1 - Math.exp(-(1 - s) * ld));
+  // Yarı skorları: iki takımın her yarıdaki golleri bağımsız Poisson
+  const M = 9, isaret = ["1", "X", "2"];
+  const sonuc = (x, y) => (x > y ? 0 : x === y ? 1 : 2);
+  const dag = lam => { const a = []; for (let k = 0; k < M; k++) a.push(poisson(lam, k)); return a; };
+  const e1 = dag(s * le), d1 = dag(s * ld), e2 = dag((1 - s) * le), d2 = dag((1 - s) * ld);
+  const r1 = [0, 0, 0], r2 = [0, 0, 0], fark2 = new Map();
+  for (let a = 0; a < M; a++) for (let b = 0; b < M; b++) {
+    r1[sonuc(a, b)] += e1[a] * d1[b];
+    r2[sonuc(a, b)] += e2[a] * d2[b];
+    fark2.set(a - b, (fark2.get(a - b) || 0) + e2[a] * d2[b]);
+  }
+  const iyms = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (let a = 0; a < M; a++) for (let b = 0; b < M; b++)
+    for (const [f, pf] of fark2) iyms[sonuc(a, b)][sonuc(a - b + f, 0)] += e1[a] * d1[b] * pf;
+  const ms3 = [p1, px, 1 - p1 - px];           // maç sonucu sütunları 1X2 ile tutarlı olsun
+  for (let j = 0; j < 3; j++) {
+    const t = iyms[0][j] + iyms[1][j] + iyms[2][j];
+    for (let i = 0; i < 3; i++) iyms[i][j] *= ms3[j] / t;
+  }
+  const iymsSecenek = [];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) iymsSecenek.push([isaret[i] + "/" + isaret[j], iyms[i][j]]);
+  const msIle = (kosul, evet, hayir) => {
+    const out = [];
+    for (let j = 0; j < 3; j++) {
+      let pe = 0;
+      for (const m of ms) if (sonuc(m[1], m[2]) === j && kosul(m[1], m[2])) pe += m[0];
+      out.push([isaret[j] + " ve " + evet, pe], [isaret[j] + " ve " + hayir, ms3[j] - pe]);
+    }
+    return out;
+  };
+  const evetHayir = p => [["Evet", p], ["Hayır", 1 - p]];
+  // Korner: toplam korner negatif binom dağılır
+  let korner = null; const kornerPazar = [];
+  if (lig.kTaban && ev[5] != null && dep[5] != null) {
+    korner = [lig.kTaban * lig.kEv * ev[5] * dep[6], lig.kTaban * dep[5] * ev[6]];
+    const ort = korner[0] + korner[1], r = VERI.kornerR, birikim = [];
+    let p = Math.pow(r / (r + ort), r), kum = 0;
+    for (let k = 0; k < 40; k++) { kum += p; birikim.push(kum); p = p * (k + r) / (k + 1) * ort / (r + ort); }
+    for (const c of VERI.kornerCizgiler) {
+      const a = birikim[Math.floor(c)];
+      kornerPazar.push(["Korner " + c.toFixed(1) + " Alt/Üst", [["Alt", a], ["Üst", 1 - a]], "Korner"]);
+    }
+  }
+  const G1 = "Maç sonucu ve gol", G2 = "Yarılar", G3 = "Kombine";
+  return {
+    le, ld, l1, l2, korner, skorlar: ms.slice(0, 3),
+    pazarlar: [
+      ["Maç Sonucu (1X2)", [["1", p1], ["X", px], ["2", 1 - p1 - px]], G1],
+      ["1.5 Gol Alt/Üst", [["Alt", alt15], ["Üst", 1 - alt15]], G1],
+      ["2.5 Gol Alt/Üst", [["Alt", alt], ["Üst", 1 - alt]], G1],
+      ["3.5 Gol Alt/Üst", [["Alt", alt35], ["Üst", 1 - alt35]], G1],
+      ["Karşılıklı Gol", [["Var", kg], ["Yok", 1 - kg]], G1],
+      ["İlk Yarı 0.5 Alt/Üst", [["Alt", y1[0]], ["Üst", 1 - y1[0]]], G2],
+      ["İlk Yarı 1.5 Alt/Üst", [["Alt", y1[0] + y1[1]], ["Üst", 1 - y1[0] - y1[1]]], G2],
+      ["İki Yarıda da Gol", [["Olur", iki], ["Olmaz", 1 - iki]], G2],
+      ["En Çok Gol Olacak Yarı", [["1. Yarı", ilk], ["Eşit", esit], ["2. Yarı", 1 - ilk - esit]], G2],
+      ["1. Yarı / 2. Yarı Karşılıklı Gol", [["Evet/Evet", kg1 * kg2], ["Evet/Hayır", kg1 * (1 - kg2)],
+        ["Hayır/Evet", (1 - kg1) * kg2], ["Hayır/Hayır", (1 - kg1) * (1 - kg2)]], G2],
+      ["Ev Sahibi Herhangi Bir Yarıyı Kazanır", evetHayir(1 - (1 - r1[0]) * (1 - r2[0])), G2],
+      ["Deplasman Herhangi Bir Yarıyı Kazanır", evetHayir(1 - (1 - r1[2]) * (1 - r2[2])), G2],
+      ["Ev Sahibi Her İki Yarıyı Kazanır", evetHayir(r1[0] * r2[0]), G2],
+      ["Deplasman Her İki Yarıyı Kazanır", evetHayir(r1[2] * r2[2]), G2],
+      ["İlk Yarı / Maç Sonucu", iymsSecenek, G3],
+      ["Maç Sonucu + 1.5 Gol", msIle((x, y) => x + y > 1, "Üst", "Alt"), G3],
+      ["Maç Sonucu + 2.5 Gol", msIle((x, y) => x + y > 2, "Üst", "Alt"), G3],
+      ["Maç Sonucu + Karşılıklı Gol", msIle((x, y) => x > 0 && y > 0, "Var", "Yok"), G3],
+      ...kornerPazar,
+    ],
+  };
+}
+
+function el(etiket, sinif, metin) {
+  const e = document.createElement(etiket);
+  if (sinif) e.className = sinif;
+  if (metin !== undefined) e.textContent = metin;
+  return e;
+}
+const tr = (x, n) => x.toFixed(n).replace(".", ",");
+
+// Yaklaşan maçlardan henüz başlamamış olanlar
+function baslamamis(lig) { return lig.yaklasan.filter(m => !m[5] || m[5] * 1000 > Date.now()); }
+function macSaati(m) {
+  if (!m[5]) return m[2];
+  const t = new Date(m[5] * 1000), iki = n => String(n).padStart(2, "0");
+  return iki(t.getDate()) + "." + iki(t.getMonth() + 1) + " " + iki(t.getHours()) + ":" + iki(t.getMinutes());
+}
+
+// ---- Kupon ----
+let kupon = [];
+try { kupon = JSON.parse(localStorage.getItem("mac-tahmin-kupon") || "[]"); } catch (e) { kupon = []; }
+if (!Array.isArray(kupon)) kupon = [];
+function kuponKaydet() { try { localStorage.setItem("mac-tahmin-kupon", JSON.stringify(kupon)); } catch (e) {} }
+
+// Bir kupon satırının güncel olasılığı (veri yenilendiyse yeniden hesaplanır); bulunamazsa null
+function bacakOlasiligi(k) {
+  const lig = VERI.ligler.find(l => l.kod === k.lig); if (!lig) return null;
+  const ev = lig.takimlar.find(t => t[0] === k.ev), dep = lig.takimlar.find(t => t[0] === k.dep);
+  if (!ev || !dep) return null;
+  const r = tahmin(lig, ev, dep, lig.yaklasan.find(m => m[0] === k.ev && m[1] === k.dep));
+  const p = r.pazarlar.find(x => x[0] === k.pazar); if (!p) return null;
+  const s = p[1].find(x => x[0] === k.secim);
+  return s ? s[1] : null;
+}
+function kuponSec(lig, ev, dep, pazar, secim) {
+  const id = lig + "|" + ev + "|" + dep, yeni = { id, lig, ev, dep, pazar, secim };
+  const i = kupon.findIndex(k => k.id === id);
+  if (i >= 0 && kupon[i].pazar === pazar && kupon[i].secim === secim) kupon.splice(i, 1);
+  else if (i >= 0) kupon[i] = yeni;
+  else kupon.push(yeni);
+  kuponKaydet(); kuponCiz(); ciz();
+}
+function kuponCiz() {
+  kupon = kupon.filter(k => bacakOlasiligi(k) !== null);
+  const liste = $("bacaklar"), toplam = $("toplam");
+  liste.textContent = ""; toplam.textContent = "";
+  $("kupon-bos").hidden = kupon.length > 0; toplam.hidden = !kupon.length; $("temizle").hidden = !kupon.length;
+  let carpim = 1;
+  for (const k of kupon) {
+    const ol = bacakOlasiligi(k); carpim *= ol;
+    const li = el("li", "bacak"), mac = el("div", "mac");
+    const kl = VERI.ligler.find(l => l.kod === k.lig);
+    const km = kl.yaklasan.find(m => m[0] === k.ev && m[1] === k.dep);
+    mac.append(el("b", "", k.ev + " – " + k.dep),
+               el("span", "", k.pazar + ": " + k.secim + (km ? " · " + macSaati(km) : "")));
+    const sil = el("button", "sil", "✕"); sil.type = "button";
+    sil.setAttribute("aria-label", k.ev + " – " + k.dep + " seçimini kupondan çıkar");
+    sil.addEventListener("click", () => { kupon = kupon.filter(x => x !== k); kuponKaydet(); kuponCiz(); ciz(); });
+    li.append(mac, el("span", "yuzde", "%" + tr(ol * 100, 1)), el("span", "oran", tr(1 / Math.max(ol, 1e-9), 2)), sil);
+    liste.appendChild(li);
+  }
+  kurCiz();
+  if (!kupon.length) return;
+  const kutu = (etiket, deger, sinif) => { const d = el("div", "buyuk" + (sinif || "")); d.append(el("small", "", etiket), deger); return d; };
+  toplam.append(kutu("Maç", String(kupon.length)), kutu("Tutma olasılığı", "%" + tr(carpim * 100, 1), " vurgu"),
+                kutu("Toplam adil oran", tr(1 / Math.max(carpim, 1e-9), 2)));
+}
+// ---- Kupon kurucu: gün ve lig süzgeci, risk düzeyine göre otomatik kupon, maç listesi ----
+const OTO_PAZARLAR = ["Maç Sonucu (1X2)", "1.5 Gol Alt/Üst", "2.5 Gol Alt/Üst", "3.5 Gol Alt/Üst",
+  "Karşılıklı Gol", "İlk Yarı 0.5 Alt/Üst", "İlk Yarı 1.5 Alt/Üst", "İki Yarıda da Gol"];
+// Seçim başına adil oran aralığı
+const RISK = { dusuk: { alt: 1.15, ust: 1.45, ad: "Düşük risk" },
+               orta: { alt: 1.40, ust: 1.85, ad: "Orta risk" },
+               yuksek: { alt: 1.60, ust: 2.30, ad: "Yüksek risk" } };
+const ADETLER = [2, 3, 4, 5, 6, 7, 8];
+let adet = 3;                    // programın seçeceği kupondaki maç sayısı
+try { adet = +localStorage.getItem("mac-tahmin-adet") || 3; } catch (e) { adet = 3; }
+if (!ADETLER.includes(adet)) adet = 3;
+const GUNLER = [["bugun", "Bugün"], ["yarin", "Yarın"], ["hepsi", "Tüm yaklaşan"]];
+let gun = null;                  // ilk çizimde maçı olan ilk gün seçilir
+let kapaliLigler = [];           // süzgeçte kapatılan ligler (varsayılan: hepsi açık)
+try { kapaliLigler = JSON.parse(localStorage.getItem("mac-tahmin-kapali") || "[]"); } catch (e) { kapaliLigler = []; }
+if (!Array.isArray(kapaliLigler)) kapaliLigler = [];
+
+function gunFarki(m) {           // 0 bugün, 1 yarın (görüntüleyenin saatine göre)
+  const s = new Date(); s.setHours(0, 0, 0, 0);
+  let t;
+  if (m[5]) t = new Date(m[5] * 1000);
+  else { const p = m[2].split("."); t = new Date(s.getFullYear(), p[1] - 1, +p[0]); }
+  t.setHours(0, 0, 0, 0);
+  return Math.round((t - s) / 864e5);
+}
+function gundeMi(m, g) { return g === "hepsi" || gunFarki(m) === (g === "bugun" ? 0 : 1); }
+// Süzgece uyan, başlamamış ve oranı yayımlanmış maçlar; g ve ligler verilmezse geçerli seçim
+function havuz(g, ligSuz) {
+  const sonuc = [];
+  for (const lig of VERI.ligler) {
+    if (ligSuz !== false && kapaliLigler.includes(lig.kod)) continue;
+    for (const m of baslamamis(lig)) if (gundeMi(m, g || gun)) sonuc.push({ lig, m });
+  }
+  return sonuc.sort((a, b) => (a.m[5] || 0) - (b.m[5] || 0));
+}
+// Bir maçta adil oranı [alt, ust] aralığına düşen en olası seçim
+function enIyiSecim(lig, m, alt, ust) {
+  const ev = lig.takimlar.find(t => t[0] === m[0]), dep = lig.takimlar.find(t => t[0] === m[1]);
+  let en = null;
+  for (const [baslik, secenekler] of tahmin(lig, ev, dep, m).pazarlar) {
+    if (!OTO_PAZARLAR.includes(baslik)) continue;
+    for (const [secim, ol] of secenekler) {
+      const oran = 1 / Math.max(ol, 1e-9);
+      if (oran >= alt && oran <= ust && (!en || ol > en.ol))
+        en = { id: lig.kod + "|" + m[0] + "|" + m[1], lig: lig.kod, ev: m[0], dep: m[1], pazar: baslik, secim, ol };
+    }
+  }
+  return en;
+}
+function otoKupon(tur) {
+  const r = RISK[tur];
+  const adaylar = havuz().map(x => enIyiSecim(x.lig, x.m, r.alt, r.ust)).filter(Boolean)
+    .sort((a, b) => b.ol - a.ol).slice(0, adet);
+  const durum = $("oto-durum");
+  if (!adaylar.length) {
+    durum.textContent = r.ad + " için seçili gün ve liglerde uygun maç bulunamadı. Günü ya da ligleri genişletin.";
+    return;
+  }
+  kupon = adaylar.map(({ ol, ...k }) => k);
+  durum.textContent = r.ad + " kuponu hazır: " + adaylar.length + " maç, seçim başına adil oran " + tr(r.alt, 2) + "–" + tr(r.ust, 2) +
+    (adaylar.length < adet ? ". " + adet + " maç istediniz; bu ölçüte uyan yalnızca " + adaylar.length + " maç bulundu." : ".");
+  kuponKaydet(); kuponCiz(); ciz();
+}
+function macAc(lig, m) {         // maçı yukarıdaki tahmin görünümünde aç
+  $("lig").value = lig.kod; takimlariDoldur();
+  $("ev").value = m[0]; $("dep").value = m[1]; ciz();
+  document.querySelector(".secim").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function kurCiz() {
+  if (gun === null) gun = (GUNLER.find(g => havuz(g[0], false).length) || GUNLER[0])[0];
+  const gunKutu = $("gunler"); gunKutu.textContent = "";
+  for (const [kod, ad] of GUNLER) {
+    const b = el("button", "dugme", ad + " (" + havuz(kod).length + ")"); b.type = "button";
+    b.setAttribute("aria-pressed", String(gun === kod));
+    b.addEventListener("click", () => { gun = kod; kurCiz(); });
+    gunKutu.appendChild(b);
+  }
+  const adetKutu = $("adetler"); adetKutu.textContent = "";
+  for (const n of ADETLER) {
+    const b = el("button", "dugme", String(n)); b.type = "button";
+    b.setAttribute("aria-pressed", String(adet === n));
+    b.setAttribute("aria-label", n + " maçlık kupon");
+    b.addEventListener("click", () => { adet = n; try { localStorage.setItem("mac-tahmin-adet", String(n)); } catch (e) {} kurCiz(); });
+    adetKutu.appendChild(b);
+  }
+  const kap = $("kapsam"); kap.textContent = "";
+  const sayim = VERI.ligler.map(l => [l, baslamamis(l).filter(m => gundeMi(m, gun)).length]).filter(x => x[1]);
+  const kaydet = () => { try { localStorage.setItem("mac-tahmin-kapali", JSON.stringify(kapaliLigler)); } catch (e) {} kurCiz(); };
+  if (sayim.length > 1) {
+    const hepsiAcik = sayim.every(x => !kapaliLigler.includes(x[0].kod));
+    const t = el("button", "dugme kucuk", hepsiAcik ? "Hiçbirini seçme" : "Tümünü seç"); t.type = "button";
+    t.addEventListener("click", () => { kapaliLigler = hepsiAcik ? sayim.map(x => x[0].kod) : []; kaydet(); });
+    kap.appendChild(t);
+  }
+  for (const [l, n] of sayim) {
+    const acik = !kapaliLigler.includes(l.kod);
+    const b = el("button", "dugme kucuk", l.ad + " (" + n + ")"); b.type = "button";
+    b.setAttribute("aria-pressed", String(acik));
+    b.addEventListener("click", () => {
+      kapaliLigler = acik ? kapaliLigler.concat(l.kod) : kapaliLigler.filter(k => k !== l.kod); kaydet();
+    });
+    kap.appendChild(b);
+  }
+  if (!sayim.length) kap.appendChild(el("span", "dip", "Bu gün için oranı yayımlanmış maç yok."));
+  const liste = $("havuz"), maclar = havuz(); liste.textContent = "";
+  $("havuz-baslik").textContent = "Maçlardan kendiniz seçin (" + maclar.length + " maç)";
+  for (const b of document.querySelectorAll("[data-oto]")) b.disabled = !maclar.length;
+  if (!maclar.length) liste.appendChild(el("li", "bos-satir", "Seçili gün ve liglerde maç yok."));
+  for (const { lig, m } of maclar) {
+    const li = el("li"), ac = el("button", "ac"); ac.type = "button";
+    ac.title = "Bu maçın bütün tahminlerini yukarıda aç";
+    ac.append(el("b", "", m[0] + " – " + m[1]), el("span", "", macSaati(m) + " · " + lig.ad));
+    ac.addEventListener("click", () => macAc(lig, m));
+    const id = lig.kod + "|" + m[0] + "|" + m[1], varolan = kupon.find(k => k.id === id);
+    const oneri = varolan || enIyiSecim(lig, m, 1.25, RISK.orta.ust);
+    li.appendChild(ac);
+    if (oneri) {
+      const ol = varolan ? bacakOlasiligi(varolan) : oneri.ol;
+      const ekle = el("button", "dugme kucuk", (varolan ? "✓ " : "+ ") + oneri.pazar.replace(" Alt/Üst", "").replace("Maç Sonucu (1X2)", "Maç sonucu") +
+        ": " + oneri.secim + " · %" + Math.round(ol * 100));
+      ekle.type = "button"; ekle.setAttribute("aria-pressed", String(!!varolan));
+      ekle.title = varolan ? "Kupondan çıkar" : "Programın bu maçtaki önerisini kupona ekle";
+      ekle.addEventListener("click", () => kuponSec(oneri.lig, oneri.ev, oneri.dep, oneri.pazar, oneri.secim));
+      li.appendChild(ekle);
+    }
+    liste.appendChild(li);
+  }
+}
+
+function ligSec() { return VERI.ligler.find(l => l.kod === $("lig").value); }
+
+function takimlariDoldur() {
+  const lig = ligSec();
+  for (const id of ["ev", "dep"]) {
+    const s = $(id); s.textContent = "";
+    for (const t of lig.takimlar) s.appendChild(new Option(t[0], t[0]));
+  }
+  const var_ = ad => lig.takimlar.some(t => t[0] === ad);
+  $("ev").value = var_("Galatasaray") ? "Galatasaray" : lig.takimlar[0][0];
+  $("dep").value = var_("Fenerbahce") ? "Fenerbahce" : lig.takimlar[1][0];
+  const acik = baslamamis(lig);
+  if (acik.length) { $("ev").value = acik[0][0]; $("dep").value = acik[0][1]; }
+  const kutu = $("maclar"); kutu.textContent = "";
+  $("yaklasan").hidden = !acik.length;
+  for (const m of acik) {
+    const b = el("button", "", m[0] + " – " + m[1]);
+    b.type = "button"; b.dataset.ev = m[0]; b.dataset.dep = m[1];
+    b.append(el("span", "gun", macSaati(m)));
+    b.addEventListener("click", () => { $("ev").value = m[0]; $("dep").value = m[1]; ciz(); });
+    kutu.appendChild(b);
+  }
+}
+
+function ciz() {
+  const lig = ligSec();
+  const ev = lig.takimlar.find(t => t[0] === $("ev").value);
+  const dep = lig.takimlar.find(t => t[0] === $("dep").value);
+  const skor = $("skor"), kunye = $("kunye"), kutu = $("pazarlar");
+  skor.textContent = ""; kutu.textContent = "";
+  if (ev[0] === dep[0]) {
+    $("durum").textContent = "";
+    kunye.textContent = "Ev sahibi ve deplasman için farklı takımlar seçin.";
+    return;
+  }
+  const oran = lig.yaklasan.find(m => m[0] === ev[0] && m[1] === dep[0]);
+  const r = tahmin(lig, ev, dep, oran);
+  const macId = lig.kod + "|" + ev[0] + "|" + dep[0];
+  const durum = $("durum");
+  durum.className = "durum" + (oran ? " var" : "");
+  durum.textContent = oran
+    ? "Bahis piyasası dahil: " + oran[2] + " tarihli maçın güncel oranları"
+    : "Bu maç için güncel bahis oranı yok; takım güçleri geçmiş oranlar, goller ve xG ile hesaplandı";
+  for (const b of document.querySelectorAll("#maclar button"))
+    b.setAttribute("aria-pressed", String(b.dataset.ev === ev[0] && b.dataset.dep === dep[0]));
+  skor.append(el("span", "", ev[0]), el("span", "xg", tr(r.le, 2) + " – " + tr(r.ld, 2)), el("span", "", dep[0]));
+  kunye.textContent = "Beklenen gol · 1. yarı " + tr(r.l1, 2) + ", 2. yarı " + tr(r.l2, 2) +
+    " · En olası skorlar: " + r.skorlar.map(s => s[1] + "-" + s[2] + " (%" + Math.round(s[0] * 100) + ")").join(", ") +
+    (r.korner ? " · Beklenen korner " + tr(r.korner[0], 1) + " – " + tr(r.korner[1], 1) : "");
+  let bolum = null;
+  for (const [baslik, secenekler, grup] of r.pazarlar) {
+    if (grup !== bolum) { bolum = grup; kutu.appendChild(el("h2", "bolum", grup)); }
+    const p = el("div", "pazar" + (secenekler.some(s => s[0].length > 7) ? " genis" : ""));
+    p.appendChild(el("h3", "", baslik));
+    const b = el("div", "satir baslik-satir");
+    b.append(el("span", "", ""), el("span", "", ""), el("span", "yuzde", "Olasılık"), el("span", "oran", "Oran"));
+    p.appendChild(b);
+    const enb = Math.max(...secenekler.map(s => s[1]));
+    for (const [ad, ol] of secenekler) {
+      const secili = kupon.some(k => k.id === macId && k.pazar === baslik && k.secim === ad);
+      const s = el("button", "satir" + (ol === enb ? " favori" : "") + (secili ? " secili" : ""));
+      s.type = "button"; s.setAttribute("aria-pressed", String(secili));
+      s.title = secili ? "Kupondan çıkar" : "Kupona ekle";
+      s.addEventListener("click", () => kuponSec(lig.kod, ev[0], dep[0], baslik, ad));
+      const c = el("div", "cubuk"), i = el("i");
+      i.style.width = (ol * 100).toFixed(1) + "%"; c.appendChild(i);
+      s.append(el("span", "ad", ad), c, el("span", "yuzde", "%" + tr(ol * 100, 1)), el("span", "oran", tr(1 / Math.max(ol, 1e-9), 2)));
+      p.appendChild(s);
+    }
+    kutu.appendChild(p);
+  }
+  const verisiz = [ev, dep].filter(t => t[4]).map(t => t[0]);
+  $("not").textContent = (lig.tur === "kupa" ? "Son 3 yılın Avrupa kupası maçları: " : lig.ad + ": ") +
+    lig.mac + " maç, son veri " + lig.son + ". " +
+    (lig.tur === "kupa" ? "Takım gücü, kendi ligindeki güç ile ligin Avrupa'daki düzeyinin çarpımıdır. " : "") +
+    (verisiz.length ? verisiz.join(" ve ") + " için ulusal lig verisi yok; gücü yalnızca Avrupa maçlarından tahmin edildi, belirsizlik daha yüksek. " : "") +
+    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. Kaynaklar: sonuçlar, xG ve bahis şirketlerinin ortalama oranları football-data.co.uk; Avrupa kupaları ve oranları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır ve günde bir kez yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
+}
+
+for (const [tur, baslik] of [["kupa", "Avrupa kupaları"], ["lig", "Ulusal ligler"]]) {
+  const g = document.createElement("optgroup"); g.label = baslik;
+  for (const l of VERI.ligler) if (l.tur === tur) g.appendChild(new Option(l.ad, l.kod));
+  if (g.children.length) $("lig").appendChild(g);
+}
+// Açılış: Süper Lig'de oranı yayımlanmış maç varsa o, yoksa böyle maçı olan ilk lig/kupa
+const acilis = VERI.ligler.find(l => l.kod === "T1" && baslamamis(l).length) ||
+  VERI.ligler.find(l => baslamamis(l).length) || VERI.ligler.find(l => l.kod === "T1") || VERI.ligler[0];
+$("lig").value = acilis.kod;
+takimlariDoldur(); kuponCiz(); ciz();
+for (const b of document.querySelectorAll("[data-oto]")) b.addEventListener("click", () => otoKupon(b.dataset.oto));
+$("temizle").addEventListener("click", () => { kupon = []; kuponKaydet(); kuponCiz(); ciz(); });
+$("lig").addEventListener("change", () => { takimlariDoldur(); ciz(); });
+$("ev").addEventListener("change", ciz);
+$("dep").addEventListener("change", ciz);
+$("degis").addEventListener("click", () => { const e = $("ev").value; $("ev").value = $("dep").value; $("dep").value = e; ciz(); });
+</script>
