@@ -97,9 +97,11 @@ program, seçilen maç sayısında (2–8) düşük, orta ya da yüksek riskli k
 seçer. Aynı maçlar listelenir; listeden tek tek eklenip karma kupon yapılabilir.
 
 ```
-python3 web_olustur.py --tam site/index.html   # sablon.html + güncel veri
+python3 web_olustur.py --tam index.html   # sablon.html + güncel veri
 ```
 
-`.github/workflows/yenile.yml` bu komutu günde üç kez (08:17, 14:17, 18:17
-Türkiye saati) çalıştırır ve sonucu GitHub Pages'te yayınlar. Elle yenilemek
-için: Actions → "Veriyi yenile ve yayınla" → Run workflow.
+`.github/workflows/yenile.yml` günde üç kez (08:17, 14:17, 18:17 Türkiye
+saati) `index.html` dosyasını yeniden üretip `main` dalına işler; GitHub Pages
+de onu yayınlar. Pages ayarı "Deploy from a branch", dal `main`, klasör `/`
+olmalıdır. Elle yenilemek için: Actions → "Veriyi yenile ve yayınla" →
+Run workflow.

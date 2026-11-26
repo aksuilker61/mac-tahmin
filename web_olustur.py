@@ -3,7 +3,7 @@
 katsayılarını hesaplayıp sablon.html içine gömer, index.html olarak yazar.
 
     python3 web_olustur.py                       # index.html (sayfa parçası)
-    python3 web_olustur.py --tam site/index.html # tek başına açılan tam sayfa
+    python3 web_olustur.py --tam index.html      # tek başına açılan tam sayfa
 
 Sayfa internetten veri çekmez; tahminler ve yaklaşan maçların bahis oranları
 bu betiğin çalıştığı andaki veriye dayanır. Güncellemek için yeniden çalıştırın.
@@ -117,7 +117,7 @@ def main():
         cikti = os.path.abspath(sys.argv[sys.argv.index("--tam") + 1])
         bas, govde = sayfa.split('<div class="sayfa">', 1)   # başlık, yazı tipi ve stil <head>'e
         sayfa = ISKELET % (bas, '<div class="sayfa">' + govde)
-        os.makedirs(os.path.dirname(cikti), exist_ok=True)
+        os.makedirs(os.path.dirname(cikti) or ".", exist_ok=True)
     with open(cikti, "w", encoding="utf-8") as f:
         f.write(sayfa)
     print("%s yazıldı (%d KB)" % (cikti, len(sayfa.encode()) // 1024))

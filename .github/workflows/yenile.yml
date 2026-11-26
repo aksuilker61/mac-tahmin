@@ -1,5 +1,7 @@
 name: Veriyi yenile ve yayınla
 
+# Sayfa GitHub Pages'te "Deploy from a branch" (main, kök klasör) ayarıyla yayınlanır:
+# bu iş akışı index.html'i yeniden üretip main dalına işler, Pages de onu yayınlar.
 on:
   schedule:
     # Her gün 08:17, 14:17 ve 18:17 (Türkiye saati); zamanlar UTC yazılır
@@ -7,32 +9,34 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths-ignore: [index.html]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: yenile
+  cancel-in-progress: false
 
 jobs:
-  yayinla:
+  yenile:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.yayin.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Veriyi indir ve sayfayı üret
-        run: python3 web_olustur.py --tam site/index.html
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-      - id: yayin
-        uses: actions/deploy-pages@v4
+        run: python3 web_olustur.py --tam index.html
+      - name: Sayfayı depoya işle
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok"
+          else
+            git commit -m "Veri yenilemesi $(TZ=Europe/Istanbul date '+%d.%m.%Y %H:%M')"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
