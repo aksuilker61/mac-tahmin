@@ -505,10 +505,13 @@ def main():
         sys.exit("İki takım aynı ligde veya aynı Avrupa kupasında bulunamadı.\n" +
                  "\n".join(oneri) + "\nTakım adları için: python3 tahmin.py --takimlar T1")
     _, kod, ev_ad, dep_ad = bulunan
-    yaklasan = yaklasan_ulusal()
+    yaklasan = avrupa.lig_fiksturu(bugun, lig_takimlari)     # fikstür ve tek şirketin oranı
+    yaklasan.update(yaklasan_ulusal())                        # varsa şirketlerin ortalaması
     if kupa_takim:
         yaklasan.update(avrupa.yaklasan(veri, bugun))
     oran = yaklasan.get((kod, ev_ad, dep_ad))
+    if oran and oran[1] is None:            # maç fikstürde var ama oranı yayımlanmamış
+        oran = None
     piyasa_gol = oran[1:3] if oran else None
 
     if kod in kupa_adi:

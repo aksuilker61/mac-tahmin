@@ -18,7 +18,8 @@ import os
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import piyasa
 import tahmin as T
@@ -191,6 +192,80 @@ def yukle(bugun):
                     ad[espn] = hedef if hedef in lig else espn
             kupa[k].append([datetime.strptime(s[0], "%Y-%m-%d").date(), ad[s[1]], ad[s[2]]] + s[3:])
     return {"ulusal": ulusal, "kupa": kupa, "lig": lig}
+
+
+# Programdaki lig kodu -> ESPN'deki lig adı
+LIG_SLUG = {
+    "T1": "tur.1", "E0": "eng.1", "E1": "eng.2", "E2": "eng.3", "E3": "eng.4", "SC0": "sco.1",
+    "D1": "ger.1", "D2": "ger.2", "I1": "ita.1", "I2": "ita.2", "SP1": "esp.1", "SP2": "esp.2",
+    "F1": "fra.1", "F2": "fra.2", "N1": "ned.1", "B1": "bel.1", "P1": "por.1", "G1": "gre.1",
+}
+GUNLUK = "https://site.api.espn.com/apis/site/v2/sports/soccer/%s/scoreboard?dates=%s"
+FIKSTUR_GUN = 7
+# ESPN'deki lig takımı adı -> football-data adı (benzerlikle bulunamayanlar)
+LIG_AD_ESLEME = {
+    "OH Leuven": "Oud-Heverlee Leuven", "FC Cologne": "FC Koln", "Queens Park Rangers": "QPR",
+    "Deportivo": "La Coruna", "Sporting Gijón": "Sp Gijon", "RC Celta Fortuna": "Celta B",
+    "Real Sociedad II": "Sociedad B", "Erzurum BB": "Erzurumspor", "Amed SFK": "Amedspor",
+}
+
+
+def _lig_adi(espn, takimlar):
+    """ESPN takım adını ligin takım listesinde bul (yeterince benzemiyorsa None)."""
+    hedef = LIG_AD_ESLEME.get(espn) or AD_ESLEME.get(espn)
+    if hedef:
+        return hedef if hedef in takimlar else None
+    en = max(takimlar, key=lambda t: T.benzerlik(espn, t))
+    return en if T.benzerlik(espn, en) >= 0.72 else None
+
+
+def lig_fiksturu(bugun, lig_takimlari):
+    """Önümüzdeki günlerin lig maçları ve varsa güncel oranları (ESPN).
+
+    Döner: {(lig, ev, dep): (tarih, piyasa_ev_gol, piyasa_dep_gol, başlama anı)}
+    Oranı olmayan maçta piyasa golleri None. Eşleşmeyen takım adları yazdırılır.
+    """
+    os.makedirs(T.ONBELLEK, exist_ok=True)
+    yol = os.path.join(T.ONBELLEK, "espn_lig_fikstur_%s.json" % bugun.isoformat())
+    ham = None
+    if os.path.exists(yol) and time.time() - os.path.getmtime(yol) < 3600:
+        with open(yol, encoding="utf-8") as f:
+            ham = json.load(f)
+    if ham is None:
+        isler = [(kod, LIG_SLUG[kod], (bugun + timedelta(days=g)).strftime("%Y%m%d"))
+                 for kod in lig_takimlari if kod in LIG_SLUG for g in range(FIKSTUR_GUN)]
+
+        def getir(i):
+            try:
+                istek = urllib.request.Request(GUNLUK % (i[1], i[2]), headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(istek, timeout=40) as yanit:
+                    return [[i[0]] + s for s in _ayikla(json.loads(yanit.read()))]
+            except Exception:
+                return []
+        with ThreadPoolExecutor(8) as havuz:
+            ham = [s for parca in havuz.map(getir, isler) for s in parca]
+        if ham:
+            with open(yol, "w", encoding="utf-8") as f:
+                json.dump(ham, f)
+    sonuc, eslesmeyen = {}, set()
+    for kod, gun, ev_espn, dep_espn, oynandi, *_, le, ld, an, _, _ in ham:
+        if oynandi or kod not in lig_takimlari:
+            continue
+        ev, dep = _lig_adi(ev_espn, lig_takimlari[kod]), _lig_adi(dep_espn, lig_takimlari[kod])
+        if not ev or not dep or ev == dep:
+            eslesmeyen.add((kod, ev_espn, dep_espn))
+            continue
+        try:
+            epoch = calendar.timegm(time.strptime(an, "%Y-%m-%dT%H:%MZ"))
+        except (TypeError, ValueError):
+            continue
+        if epoch < time.time():
+            continue
+        tarih = datetime.fromtimestamp(epoch, ZoneInfo("Europe/Istanbul")).date()
+        sonuc[(kod, ev, dep)] = (tarih, le, ld, epoch)
+    print("lig fikstürü: %d maç (%d oranlı)" % (len(sonuc), sum(1 for v in sonuc.values() if v[1] is not None)) +
+          (", eşleşmeyen: %s" % sorted(eslesmeyen) if eslesmeyen else ""))
+    return sonuc
 
 
 def kupa_takimlari(veri, bugun):

@@ -50,8 +50,9 @@ Her çalıştırmada güncel veri indirilir (2 saatlik önbellek):
 - **football-data.co.uk**: maç sonuçları, bu sezonun xG verisi, bahis
   şirketlerinin ortalama 1X2 ve 2.5 alt/üst oranları (kapanış), ayrıca
   yaklaşan maçların güncel oranları (`fixtures.csv`).
-- **ESPN skor servisi**: Avrupa kupası sonuçları ve yaklaşan kupa maçlarının
-  güncel oranları.
+- **ESPN skor servisi**: Avrupa kupası sonuçları; önümüzdeki 7 günün lig ve
+  kupa maçları ile (yayımlanmışsa) güncel oranları. football-data'nın oranı
+  varsa lig maçında o tercih edilir.
 
 Oranlar iki yerde kullanılır (`piyasa.py`):
 

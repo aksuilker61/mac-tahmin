@@ -36,9 +36,10 @@ def kayit(kod, ad, tur, m, takimlar, mac, son, yaklasan, verisiz=()):
     """Bir lig/kupa için sayfaya gömülecek katsayılar.
     takım: [ad, hücum, savunma, ilk yarı gol payı, ulusal lig verisi yok mu,
             korner hücum, korner savunma]  (korner modeli yoksa son ikisi None)
-    yaklaşan: [ev, dep, tarih, piyasanın beklediği ev golü, dep golü, başlama anı]"""
-    mac_oran = sorted((v[0], v[3] or 0, k[1], k[2], v[1], v[2]) for k, v in yaklasan.items()
-                      if k[0] == kod and k[1] in takimlar and k[2] in takimlar)
+    yaklaşan: [ev, dep, tarih, piyasanın beklediği ev golü, dep golü, başlama anı]
+              (oranı yayımlanmamış maçta goller None)"""
+    mac_oran = sorted(((v[0], v[3] or 0, k[1], k[2], v[1], v[2]) for k, v in yaklasan.items()
+                       if k[0] == kod and k[1] in takimlar and k[2] in takimlar), key=lambda x: x[:4])
     km = m.get("korner")
 
     def kor(t, alan):
@@ -51,7 +52,7 @@ def kayit(kod, ad, tur, m, takimlar, mac, son, yaklasan, verisiz=()):
         "takimlar": [[t, round(m["huc"][t], 4), round(m["sav"][t], 4),
                       round(m["pay"][t], 4), int(t in verisiz), kor(t, "huc"), kor(t, "sav")]
                      for t in takimlar],
-        "yaklasan": [[e, d, t.strftime("%d.%m"), round(le, 3), round(ld, 3), an]
+        "yaklasan": [[e, d, t.strftime("%d.%m"), le and round(le, 3), ld and round(ld, 3), an]
                      for t, an, e, d, le, ld in mac_oran],
     }
 
@@ -60,7 +61,10 @@ def main():
     bugun = date.today()
     veri = avrupa.yukle(bugun)
     ligler = []
-    yaklasan = T.yaklasan_ulusal()
+    lig_takimlari = {k: sorted({x[1] for x in g} | {x[2] for x in g})
+                     for k, (g, _) in veri["ulusal"].items()}
+    yaklasan = avrupa.lig_fiksturu(bugun, lig_takimlari)     # fikstür ve tek şirketin oranı
+    yaklasan.update(T.yaklasan_ulusal())                      # varsa şirketlerin ortalaması
     yaklasan.update(avrupa.yaklasan(veri, bugun))
 
     am = avrupa.model_kur(veri, bugun)

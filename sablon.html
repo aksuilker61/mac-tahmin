@@ -154,7 +154,7 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 <div class="sayfa">
   <header>
     <h1>Maç Tahmin</h1>
-    <p class="alt">İki takımı seçin; olasılıklar ve adil oranlar anında hesaplanır. Güncel bahis oranı yayımlanmış maçlarda tahmin o oranlara dayanır. Bir satıra tıklayarak seçimi kupona ekleyin.</p>
+    <p class="alt">İki takımı seçin; olasılıklar ve adil oranlar anında hesaplanır. Yaklaşan maçlarda, oranı yayımlanmışsa tahmin o oranlara dayanır. Bir satıra tıklayarak seçimi kupona ekleyin.</p>
   </header>
 
   <section class="secim">
@@ -165,7 +165,7 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
   </section>
 
   <section class="yaklasan" id="yaklasan" hidden>
-    <h2>Oranı yayımlanmış yaklaşan maçlar</h2>
+    <h2>Yaklaşan maçlar</h2>
     <div class="maclar" id="maclar"></div>
   </section>
 
@@ -236,7 +236,7 @@ function dc(x, y, le, ld, rho) {
 function tahmin(lig, ev, dep, oran) {
   let le = lig.taban * lig.ev * ev[1] * dep[2];
   let ld = lig.taban * dep[1] * ev[2];
-  if (oran) {   // maçın güncel bahis oranlarından çözülen beklenen goller ağır basar
+  if (oran && oran[3] != null) {   // maçın güncel bahis oranlarından çözülen beklenen goller ağır basar
     le = VERI.piyasaPayi * oran[3] + (1 - VERI.piyasaPayi) * le;
     ld = VERI.piyasaPayi * oran[4] + (1 - VERI.piyasaPayi) * ld;
   }
@@ -503,7 +503,7 @@ function kurCiz() {
     });
     kap.appendChild(b);
   }
-  if (!sayim.length) kap.appendChild(el("span", "dip", "Bu gün için oranı yayımlanmış maç yok."));
+  if (!sayim.length) kap.appendChild(el("span", "dip", "Bu gün için listede maç yok."));
   const liste = $("havuz"), maclar = havuz(); liste.textContent = "";
   $("havuz-baslik").textContent = "Maçlardan kendiniz seçin (" + maclar.length + " maç)";
   for (const b of document.querySelectorAll("[data-oto]")) b.disabled = !maclar.length;
@@ -568,8 +568,9 @@ function ciz() {
   const r = tahmin(lig, ev, dep, oran);
   const macId = lig.kod + "|" + ev[0] + "|" + dep[0];
   const durum = $("durum");
-  durum.className = "durum" + (oran ? " var" : "");
-  durum.textContent = oran
+  const oranli = !!(oran && oran[3] != null);
+  durum.className = "durum" + (oranli ? " var" : "");
+  durum.textContent = oranli
     ? "Bahis piyasası dahil: " + oran[2] + " tarihli maçın güncel oranları"
     : "Bu maç için güncel bahis oranı yok; takım güçleri geçmiş oranlar, goller ve xG ile hesaplandı";
   for (const b of document.querySelectorAll("#maclar button"))
@@ -605,7 +606,7 @@ function ciz() {
     lig.mac + " maç, son veri " + lig.son + ". " +
     (lig.tur === "kupa" ? "Takım gücü, kendi ligindeki güç ile ligin Avrupa'daki düzeyinin çarpımıdır. " : "") +
     (verisiz.length ? verisiz.join(" ve ") + " için ulusal lig verisi yok; gücü yalnızca Avrupa maçlarından tahmin edildi, belirsizlik daha yüksek. " : "") +
-    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. Kaynaklar: sonuçlar, xG ve bahis şirketlerinin ortalama oranları football-data.co.uk; Avrupa kupaları ve oranları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır ve günde üç kez yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
+    "Oran = 1 / olasılık, bahis şirketi komisyonu içermez. Kaynaklar: sonuçlar, xG ve bahis şirketlerinin ortalama oranları football-data.co.uk; yaklaşan maçlar, oranları ve Avrupa kupaları ESPN. Veriler " + VERI.uretim + " (TSİ) itibarıyladır ve günde üç kez yenilenir. İstatistiksel tahmindir, kesinlik taşımaz.";
 }
 
 for (const [tur, baslik] of [["kupa", "Avrupa kupaları"], ["lig", "Ulusal ligler"]]) {
