@@ -107,7 +107,7 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 .havuz li:first-child { border-top: 0; }
 .havuz .bos-satir { color: var(--muted); }
 .havuz .ac { font: inherit; color: var(--fg); background: none; border: 0; cursor: pointer; text-align: left; padding: 2px 4px; border-radius: 6px; min-width: 0; }
-.havuz .ac b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.havuz .ac b { display: block; font-weight: 600; overflow-wrap: break-word; }
 .havuz .ac span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .havuz .ac:hover b { color: var(--accent); }
 .havuz .ac:focus-visible { outline: 2px solid var(--accent); }
@@ -125,7 +125,7 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
   padding: 9px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
 }
 .bacak .mac { min-width: 0; }
-.bacak .mac b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.bacak .mac b { display: block; font-weight: 600; overflow-wrap: break-word; }
 .bacak .mac span { color: var(--muted); font-size: 13px; }
 .bacak .yuzde { text-align: right; } .bacak .oran { text-align: right; color: var(--muted); }
 .bacak .sil { font: inherit; line-height: 1; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 6px; border-radius: 6px; }
@@ -144,6 +144,33 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 .satir.favori .cubuk i { background: var(--accent); }
 .baslik-satir { color: var(--muted); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; padding-top: 0; }
 .not { color: var(--muted); font-size: 13px; max-width: 65ch; margin: 0; }
+@media (max-width: 560px) {
+  /* Telefon: maç listesinde takım adı üstte tam genişlikte, öneri düğmesi altında */
+  .havuz { max-height: 420px; }
+  .havuz li { flex-direction: column; align-items: stretch; gap: 6px; padding: 10px; }
+  .havuz .ac { padding: 2px 0; }
+  .havuz .dugme { white-space: normal; text-align: left; padding: 9px 12px; border-radius: 8px; font-size: 13px; }
+  /* Kupon satırı: maç üstte, olasılık ve oran altında */
+  .bacak { grid-template-columns: auto auto 1fr 36px; row-gap: 2px; padding: 10px 0; }
+  .bacak .mac { grid-column: 1 / 4; }
+  .bacak .sil { grid-column: 4; grid-row: 1 / 3; align-self: center; padding: 10px; }
+  .bacak .yuzde, .bacak .oran { text-align: left; font-size: 13px; }
+  .bacak .yuzde { font-weight: 600; }
+  .bacak .oran::before { content: "oran "; }
+  /* Dokunma alanları ve iOS'ta odaklanınca yakınlaşmayı önleyen yazı boyutu */
+  select { font-size: 16px; padding: 11px 10px; }
+  button.satir { padding: 9px 6px; }
+  .dugme { padding: 9px 13px; }
+  .dugme.kucuk { padding: 9px 12px; }
+  #kapsam { max-height: 176px; overflow-y: auto; }   /* uzun lig listesi kendi içinde kayar */
+  .maclar { max-height: 150px; }
+  .maclar button { padding: 8px 12px; }
+  .kupon { padding: 14px 12px; }
+  .pazar { padding: 12px; }
+  .toplam { gap: 10px 20px; }
+  .skor { font-size: 20px; }
+  .bolum { font-size: 17px; }
+}
 @media (max-width: 480px) {
   .secim { grid-template-columns: 1fr; grid-template-areas: "lig" "ev" "degis" "dep"; }
   .pazarlar { grid-template-columns: 1fr; }
