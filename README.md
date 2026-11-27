@@ -12,6 +12,11 @@
 - Ev sahibi / deplasman herhangi bir yarıyı kazanır, her iki yarıyı kazanır (Evet/Hayır)
 - İlk yarı / maç sonucu (1/1, 1/X, ... 2/2)
 - Maç sonucu + 1.5 gol, maç sonucu + 2.5 gol, maç sonucu + karşılıklı gol
+- Çifte şans (1X, 12, X2), toplam gol aralığı, tek/çift, ilk golü hangi takım atar
+- Takım golleri: ev sahibi ve deplasman 0.5 / 1.5 / 2.5 alt/üst, ilk yarı 0.5
+  alt/üst, iki yarıda da gol, hangi yarıda daha çok gol atar
+- 1. yarı sonucu, 2. yarı sonucu, 1. yarı tek/çift, 1. ve 2. yarı karşılıklı gol
+- 1. yarı sonucu + 1. yarı 1.5 gol, 1. yarı sonucu + 1. yarı karşılıklı gol
 - Korner 8.5, 9.5 ve 10.5 Alt/Üst (aynı hücum/savunma modeli korner sayılarıyla
   kurulur; toplam korner negatif binom dağılır)
 

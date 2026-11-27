@@ -307,7 +307,30 @@ function tahmin(lig, ev, dep, oran) {
       kornerPazar.push(["Korner " + c.toFixed(1) + " Alt/Üst", [["Alt", a], ["Üst", 1 - a]], "Korner"]);
     }
   }
-  const G1 = "Maç sonucu ve gol", G2 = "Yarılar", G3 = "Kombine";
+  const altUst = (dag, cizgi) => { let a = 0; for (let k = 0; k <= Math.floor(cizgi); k++) a += dag[k]; return [["Alt", a], ["Üst", 1 - a]]; };
+  // Takım ve toplam gol dağılımları (maç sonu skor matrisinden)
+  const evDag = new Array(N).fill(0), depDag = new Array(N).fill(0), topDag = new Array(2 * N).fill(0);
+  let golsuz = 0;
+  for (const m of ms) { evDag[m[1]] += m[0]; depDag[m[2]] += m[0]; topDag[m[1] + m[2]] += m[0]; if (!m[1] && !m[2]) golsuz = m[0]; }
+  const topla = (d, a, b) => d.slice(a, b).reduce((x, y) => x + y, 0);
+  let cift = 0; for (let k = 0; k < 2 * N; k += 2) cift += topDag[k];
+  const cift1 = (1 + Math.exp(-2 * l1)) / 2;        // ilk yarı toplam golü çift (0 dahil)
+  const ilkEv = (1 - golsuz) * le / (le + ld);      // ilk golü ev sahibinin atması
+  const iyIle = (kosul, evet, hayir) => {
+    const out = [];
+    for (let j = 0; j < 3; j++) {
+      let pe = 0;
+      for (let a = 0; a < M; a++) for (let b = 0; b < M; b++) if (sonuc(a, b) === j && kosul(a, b)) pe += e1[a] * d1[b];
+      out.push([isaret[j] + " ve " + evet, pe], [isaret[j] + " ve " + hayir, r1[j] - pe]);
+    }
+    return out;
+  };
+  const yariKiyasi = (ilkY, ikinciY) => {
+    let cok1 = 0, es = 0;
+    for (let a = 0; a < M; a++) { es += ilkY[a] * ikinciY[a]; for (let b = 0; b < a; b++) cok1 += ilkY[a] * ikinciY[b]; }
+    return [["1. Yarı", cok1], ["Eşit", es], ["2. Yarı", 1 - cok1 - es]];
+  };
+  const G1 = "Maç sonucu ve gol", G2 = "Yarılar", G3 = "Kombine", G4 = "Takım golleri";
   return {
     le, ld, l1, l2, korner, skorlar: ms.slice(0, 3),
     pazarlar: [
@@ -316,8 +339,30 @@ function tahmin(lig, ev, dep, oran) {
       ["2.5 Gol Alt/Üst", [["Alt", alt], ["Üst", 1 - alt]], G1],
       ["3.5 Gol Alt/Üst", [["Alt", alt35], ["Üst", 1 - alt35]], G1],
       ["Karşılıklı Gol", [["Var", kg], ["Yok", 1 - kg]], G1],
+      ["Çifte Şans", [["1X", p1 + px], ["12", 1 - px], ["X2", 1 - p1]], G1],
+      ["Toplam Gol Aralığı", [["0-1 gol", topla(topDag, 0, 2)], ["2-3 gol", topla(topDag, 2, 4)],
+        ["4-5 gol", topla(topDag, 4, 6)], ["6+ gol", topla(topDag, 6)]], G1],
+      ["Tek/Çift", [["Tek", 1 - cift], ["Çift", cift]], G1],
+      ["İlk Golü Hangi Takım Atar", [["Ev sahibi", ilkEv], ["Gol olmaz", golsuz], ["Deplasman", 1 - golsuz - ilkEv]], G1],
+      ["Ev Sahibi 0.5 Gol Alt/Üst", altUst(evDag, 0.5), G4],
+      ["Ev Sahibi 1.5 Gol Alt/Üst", altUst(evDag, 1.5), G4],
+      ["Ev Sahibi 2.5 Gol Alt/Üst", altUst(evDag, 2.5), G4],
+      ["Deplasman 0.5 Gol Alt/Üst", altUst(depDag, 0.5), G4],
+      ["Deplasman 1.5 Gol Alt/Üst", altUst(depDag, 1.5), G4],
+      ["Deplasman 2.5 Gol Alt/Üst", altUst(depDag, 2.5), G4],
+      ["Ev Sahibi İlk Yarı 0.5 Gol Alt/Üst", altUst(e1, 0.5), G4],
+      ["Deplasman İlk Yarı 0.5 Gol Alt/Üst", altUst(d1, 0.5), G4],
+      ["Ev Sahibi İki Yarıda da Gol", evetHayir((1 - e1[0]) * (1 - e2[0])), G4],
+      ["Deplasman İki Yarıda da Gol", evetHayir((1 - d1[0]) * (1 - d2[0])), G4],
+      ["Ev Sahibi Hangi Yarıda Daha Çok Gol Atar", yariKiyasi(e1, e2), G4],
+      ["Deplasman Hangi Yarıda Daha Çok Gol Atar", yariKiyasi(d1, d2), G4],
+      ["1. Yarı Sonucu", [["1", r1[0]], ["X", r1[1]], ["2", r1[2]]], G2],
+      ["2. Yarı Sonucu", [["1", r2[0]], ["X", r2[1]], ["2", r2[2]]], G2],
       ["İlk Yarı 0.5 Alt/Üst", [["Alt", y1[0]], ["Üst", 1 - y1[0]]], G2],
       ["İlk Yarı 1.5 Alt/Üst", [["Alt", y1[0] + y1[1]], ["Üst", 1 - y1[0] - y1[1]]], G2],
+      ["1. Yarı Tek/Çift", [["Tek", 1 - cift1], ["Çift", cift1]], G2],
+      ["1. Yarı Karşılıklı Gol", [["Var", kg1], ["Yok", 1 - kg1]], G2],
+      ["2. Yarı Karşılıklı Gol", [["Var", kg2], ["Yok", 1 - kg2]], G2],
       ["İki Yarıda da Gol", [["Olur", iki], ["Olmaz", 1 - iki]], G2],
       ["En Çok Gol Olacak Yarı", [["1. Yarı", ilk], ["Eşit", esit], ["2. Yarı", 1 - ilk - esit]], G2],
       ["1. Yarı / 2. Yarı Karşılıklı Gol", [["Evet/Evet", kg1 * kg2], ["Evet/Hayır", kg1 * (1 - kg2)],
@@ -330,6 +375,8 @@ function tahmin(lig, ev, dep, oran) {
       ["Maç Sonucu + 1.5 Gol", msIle((x, y) => x + y > 1, "Üst", "Alt"), G3],
       ["Maç Sonucu + 2.5 Gol", msIle((x, y) => x + y > 2, "Üst", "Alt"), G3],
       ["Maç Sonucu + Karşılıklı Gol", msIle((x, y) => x > 0 && y > 0, "Var", "Yok"), G3],
+      ["1. Yarı Sonucu + 1. Yarı 1.5 Gol", iyIle((a, b) => a + b > 1, "Üst", "Alt"), G3],
+      ["1. Yarı Sonucu + 1. Yarı Karşılıklı Gol", iyIle((a, b) => a > 0 && b > 0, "Var", "Yok"), G3],
       ...kornerPazar,
     ],
   };
@@ -401,8 +448,6 @@ function kuponCiz() {
                 kutu("Toplam adil oran", tr(1 / Math.max(carpim, 1e-9), 2)));
 }
 // ---- Kupon kurucu: gün ve lig süzgeci, risk düzeyine göre otomatik kupon, maç listesi ----
-const OTO_PAZARLAR = ["Maç Sonucu (1X2)", "1.5 Gol Alt/Üst", "2.5 Gol Alt/Üst", "3.5 Gol Alt/Üst",
-  "Karşılıklı Gol", "İlk Yarı 0.5 Alt/Üst", "İlk Yarı 1.5 Alt/Üst", "İki Yarıda da Gol"];
 // Seçim başına adil oran aralığı
 const RISK = { dusuk: { alt: 1.15, ust: 1.45, ad: "Düşük risk" },
                orta: { alt: 1.40, ust: 1.85, ad: "Orta risk" },
@@ -440,7 +485,6 @@ function enIyiSecim(lig, m, alt, ust) {
   const ev = lig.takimlar.find(t => t[0] === m[0]), dep = lig.takimlar.find(t => t[0] === m[1]);
   let en = null;
   for (const [baslik, secenekler] of tahmin(lig, ev, dep, m).pazarlar) {
-    if (!OTO_PAZARLAR.includes(baslik)) continue;
     for (const [secim, ol] of secenekler) {
       const oran = 1 / Math.max(ol, 1e-9);
       if (oran >= alt && oran <= ust && (!en || ol > en.ol))

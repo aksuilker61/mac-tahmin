@@ -372,6 +372,37 @@ def tahmin_et(model, ev, dep, piyasa_gol=None):
     def evet_hayir(p):
         return [("Evet", p), ("Hayır", 1 - p)]
 
+    def alt_ust(dag, cizgi):
+        alt = sum(dag[:int(cizgi) + 1])
+        return [("Alt", alt), ("Üst", 1 - alt)]
+
+    # Takım ve toplam gol dağılımları (maç sonu skor matrisinden)
+    ev_dag = [sum(ms[x]) for x in range(n)]
+    dep_dag = [sum(ms[x][y] for x in range(n)) for y in range(n)]
+    top_dag = [0.0] * (2 * n)
+    for x in range(n):
+        for y in range(n):
+            top_dag[x + y] += ms[x][y]
+    cift = sum(top_dag[0::2])
+    cift1 = (1 + math.exp(-2 * l1)) / 2           # ilk yarı toplam golü çift (0 dahil)
+    golsuz = ms[0][0]
+    ilk_ev = (1 - golsuz) * le / (le + ld)        # ilk golü ev sahibinin atması
+
+    def iy_ile(kosul, evet, hayir):
+        """İlk yarı sonucu ile ilk yarıya ait ikinci bir koşulun birleşimi."""
+        satirlar = []
+        for j in range(3):
+            pe = sum(e1[a] * d1[b] for a in range(m) for b in range(m)
+                     if _sonuc(a, b) == j and kosul(a, b))
+            satirlar += [("%s ve %s" % (isaret[j], evet), pe), ("%s ve %s" % (isaret[j], hayir), r1[j] - pe)]
+        return satirlar
+
+    def yari_kiyasi(ilk, ikinci):
+        """Bir takımın hangi yarıda daha çok gol atacağı."""
+        cok1 = sum(ilk[a] * ikinci[b] for a in range(m) for b in range(a))
+        esit = sum(ilk[a] * ikinci[a] for a in range(m))
+        return [("1. Yarı", cok1), ("Eşit", esit), ("2. Yarı", 1 - cok1 - esit)]
+
     korner, korner_pazar = None, []
     km = model.get("korner")
     if km and ev in km["huc"] and dep in km["huc"]:
@@ -392,8 +423,31 @@ def tahmin_et(model, ev, dep, piyasa_gol=None):
             ("2.5 Gol Alt/Üst", [("Alt", alt25), ("Üst", 1 - alt25)]),
             ("3.5 Gol Alt/Üst", [("Alt", alt35), ("Üst", 1 - alt35)]),
             ("Karşılıklı Gol", [("Var", kg), ("Yok", 1 - kg)]),
+            ("Çifte Şans", [("1X", p1 + px), ("12", 1 - px), ("X2", 1 - p1)]),
+            ("Toplam Gol Aralığı", [("0-1 gol", sum(top_dag[:2])), ("2-3 gol", sum(top_dag[2:4])),
+                                    ("4-5 gol", sum(top_dag[4:6])), ("6+ gol", sum(top_dag[6:]))]),
+            ("Tek/Çift", [("Tek", 1 - cift), ("Çift", cift)]),
+            ("İlk Golü Hangi Takım Atar", [("Ev sahibi", ilk_ev), ("Gol olmaz", golsuz),
+                                           ("Deplasman", 1 - golsuz - ilk_ev)]),
+            ("Ev Sahibi 0.5 Gol Alt/Üst", alt_ust(ev_dag, 0.5)),
+            ("Ev Sahibi 1.5 Gol Alt/Üst", alt_ust(ev_dag, 1.5)),
+            ("Ev Sahibi 2.5 Gol Alt/Üst", alt_ust(ev_dag, 2.5)),
+            ("Deplasman 0.5 Gol Alt/Üst", alt_ust(dep_dag, 0.5)),
+            ("Deplasman 1.5 Gol Alt/Üst", alt_ust(dep_dag, 1.5)),
+            ("Deplasman 2.5 Gol Alt/Üst", alt_ust(dep_dag, 2.5)),
+            ("Ev Sahibi İlk Yarı 0.5 Gol Alt/Üst", alt_ust(e1, 0.5)),
+            ("Deplasman İlk Yarı 0.5 Gol Alt/Üst", alt_ust(d1, 0.5)),
+            ("Ev Sahibi İki Yarıda da Gol", evet_hayir((1 - e1[0]) * (1 - e2[0]))),
+            ("Deplasman İki Yarıda da Gol", evet_hayir((1 - d1[0]) * (1 - d2[0]))),
+            ("Ev Sahibi Hangi Yarıda Daha Çok Gol Atar", yari_kiyasi(e1, e2)),
+            ("Deplasman Hangi Yarıda Daha Çok Gol Atar", yari_kiyasi(d1, d2)),
+            ("1. Yarı Sonucu", [("1", r1[0]), ("X", r1[1]), ("2", r1[2])]),
+            ("2. Yarı Sonucu", [("1", r2[0]), ("X", r2[1]), ("2", r2[2])]),
             ("İlk Yarı 0.5 Alt/Üst", [("Alt", y1[0]), ("Üst", 1 - y1[0])]),
             ("İlk Yarı 1.5 Alt/Üst", [("Alt", y1[0] + y1[1]), ("Üst", 1 - y1[0] - y1[1])]),
+            ("1. Yarı Tek/Çift", [("Tek", 1 - cift1), ("Çift", cift1)]),
+            ("1. Yarı Karşılıklı Gol", [("Var", kg1), ("Yok", 1 - kg1)]),
+            ("2. Yarı Karşılıklı Gol", [("Var", kg2), ("Yok", 1 - kg2)]),
             ("İki Yarıda da Gol", [("Olur", (1 - y1[0]) * (1 - y2[0])),
                                     ("Olmaz", 1 - (1 - y1[0]) * (1 - y2[0]))]),
             ("En Çok Gol Olacak Yarı", [("1. Yarı", iy_cok), ("Eşit", iy_esit),
@@ -406,6 +460,8 @@ def tahmin_et(model, ev, dep, piyasa_gol=None):
             ("Maç Sonucu + 1.5 Gol", ms_ile(lambda x, y: x + y > 1, "Üst", "Alt")),
             ("Maç Sonucu + 2.5 Gol", ms_ile(lambda x, y: x + y > 2, "Üst", "Alt")),
             ("Maç Sonucu + Karşılıklı Gol", ms_ile(lambda x, y: x > 0 and y > 0, "Var", "Yok")),
+            ("1. Yarı Sonucu + 1. Yarı 1.5 Gol", iy_ile(lambda a, b: a + b > 1, "Üst", "Alt")),
+            ("1. Yarı Sonucu + 1. Yarı Karşılıklı Gol", iy_ile(lambda a, b: a > 0 and b > 0, "Var", "Yok")),
             ("Ev Sahibi Herhangi Bir Yarıyı Kazanır", evet_hayir(1 - (1 - r1[0]) * (1 - r2[0]))),
             ("Deplasman Herhangi Bir Yarıyı Kazanır", evet_hayir(1 - (1 - r1[2]) * (1 - r2[2]))),
             ("Ev Sahibi Her İki Yarıyı Kazanır", evet_hayir(r1[0] * r2[0])),
