@@ -64,6 +64,30 @@ select:focus-visible, #degis:focus-visible { outline: 2px solid var(--accent); o
 .maclar button:hover { border-color: var(--accent); }
 .maclar button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .maclar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hafta { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.hafta h2 { font-family: var(--display); font-size: 18px; font-weight: 700; margin: 0; }
+.hafta .dip { color: var(--muted); font-size: 13px; margin: 0; }
+.hafta-tablo { display: flex; flex-direction: column; }
+.hafta-satir { display: grid; grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr)); gap: 8px; align-items: stretch; padding: 8px 0; border-top: 1px solid var(--line); }
+.hafta-satir.ust { border-top: 0; padding: 0 0 4px; }
+.hafta-satir.ust .etiket { text-align: center; } .hafta-satir.ust .etiket:first-child { text-align: left; }
+.hafta-mac { font: inherit; color: var(--fg); background: none; border: 0; cursor: pointer; text-align: left; padding: 2px 4px 2px 0; border-radius: 6px; min-width: 0; }
+.hafta-mac b { display: block; font-weight: 600; overflow-wrap: break-word; }
+.hafta-mac span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.hafta-mac:hover b { color: var(--accent); }
+.hafta-mac:focus-visible, .secim-dugme:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.secim-dugme {
+  font: inherit; font-size: 13px; color: var(--fg); background: var(--bg); cursor: pointer; text-align: left;
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px; justify-content: center;
+}
+.secim-dugme b { font-weight: 600; overflow-wrap: break-word; }
+.secim-dugme span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.secim-dugme:hover { border-color: var(--accent); }
+.secim-dugme[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.secim-dugme[aria-pressed="true"] b { color: var(--accent); }
+.secim-dugme .duzey { display: none; }
+.secim-yok { color: var(--muted); text-align: center; align-self: center; }
 .ozet { display: flex; flex-direction: column; gap: 6px; }
 .durum { font-size: 13px; color: var(--muted); }
 .durum.var { color: var(--accent); font-weight: 600; }
@@ -144,6 +168,15 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
 .satir.favori .cubuk i { background: var(--accent); }
 .baslik-satir { color: var(--muted); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; padding-top: 0; }
 .not { color: var(--muted); font-size: 13px; max-width: 65ch; margin: 0; }
+@media (max-width: 640px) {
+  /* Haftalık tablo telefonda: maç üstte, üç seçim altında yan yana; düzey adı düğmenin içinde */
+  .hafta { padding: 14px 12px; }
+  .hafta-satir.ust { display: none; }
+  .hafta-satir { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 10px 0; }
+  .hafta-mac { grid-column: 1 / -1; }
+  .secim-dugme { padding: 7px 7px; font-size: 12px; }
+  .secim-dugme .duzey { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+}
 @media (max-width: 560px) {
   /* Telefon: maç listesinde takım adı üstte tam genişlikte, öneri düğmesi altında */
   .havuz { max-height: 420px; }
@@ -194,6 +227,16 @@ button.satir.secili .ad::after { content: " ✓"; color: var(--accent); }
   <section class="yaklasan" id="yaklasan" hidden>
     <h2>Yaklaşan maçlar</h2>
     <div class="maclar" id="maclar"></div>
+  </section>
+
+  <section class="hafta" id="hafta-bolum" hidden aria-labelledby="hafta-baslik">
+    <h2 id="hafta-baslik"></h2>
+    <p class="dip">Her maç için üç risk düzeyinde programın en olası seçimi. Bir seçime dokununca kupona eklenir; maç adına dokununca bütün tahminleri aşağıda açılır.</p>
+    <div class="grup">
+      <span class="etiket">Haftanın bütün maçlarını kupona al</span>
+      <div class="dizi" id="hafta-toplu"></div>
+    </div>
+    <div class="hafta-tablo" id="hafta"></div>
   </section>
 
   <section class="ozet">
@@ -468,7 +511,7 @@ function kuponCiz() {
     li.append(mac, el("span", "yuzde", "%" + tr(ol * 100, 1)), el("span", "oran", tr(1 / Math.max(ol, 1e-9), 2)), sil);
     liste.appendChild(li);
   }
-  kurCiz();
+  kurCiz(); haftaCiz();
   if (!kupon.length) return;
   const kutu = (etiket, deger, sinif) => { const d = el("div", "buyuk" + (sinif || "")); d.append(el("small", "", etiket), deger); return d; };
   toplam.append(kutu("Maç", String(kupon.length)), kutu("Tutma olasılığı", "%" + tr(carpim * 100, 1), " vurgu"),
@@ -539,6 +582,57 @@ function macAc(lig, m) {         // maçı yukarıdaki tahmin görünümünde a�
   $("ev").value = m[0]; $("dep").value = m[1]; ciz();
   document.querySelector(".secim").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// ---- Haftalık lig tahminleri: seçili ligin her yaklaşan maçı için üç risk düzeyinde seçim ----
+const DUZEYLER = [["dusuk", "Düşük"], ["orta", "Orta"], ["yuksek", "Riskli"]];
+const duzeyAdi = ad => (ad === "Riskli" ? ad : ad + " risk");
+const kisaPazar = b => b.replace(" Alt/Üst", "").replace("Maç Sonucu (1X2)", "Maç sonucu");
+function haftaSecimleri(lig) {
+  return baslamamis(lig).slice().sort((a, b) => (a[5] || 0) - (b[5] || 0)).map(m =>
+    ({ m, secim: Object.fromEntries(DUZEYLER.map(([k]) => [k, enIyiSecim(lig, m, RISK[k].alt, RISK[k].ust)])) }));
+}
+function haftaCiz() {
+  const lig = ligSec(), satirlar = haftaSecimleri(lig);
+  $("hafta-bolum").hidden = !satirlar.length;
+  if (!satirlar.length) return;
+  $("hafta-baslik").textContent = "Haftanın maçları: " + lig.ad + " (" + satirlar.length + " maç)";
+  const toplu = $("hafta-toplu"); toplu.textContent = "";
+  for (const [k, ad] of DUZEYLER) {
+    const secimler = satirlar.map(x => x.secim[k]).filter(Boolean);
+    const carpim = secimler.reduce((c, x) => c * x.ol, 1);
+    const b = el("button", "dugme", duzeyAdi(ad) + " · " + secimler.length + " maç · %" + tr(carpim * 100, carpim < 0.1 ? 2 : 1));
+    b.type = "button"; b.disabled = !secimler.length;
+    b.title = "Kuponu bu ligin bütün maçlarının " + duzeyAdi(ad).toLocaleLowerCase("tr") + " seçimleriyle doldur";
+    b.addEventListener("click", () => {
+      kupon = secimler.map(({ ol, ...x }) => x); kuponKaydet(); kuponCiz(); ciz();
+      document.querySelector(".kupon").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    toplu.appendChild(b);
+  }
+  const tablo = $("hafta"); tablo.textContent = "";
+  const ust = el("div", "hafta-satir ust");
+  ust.append(el("span", "etiket", "Maç"), ...DUZEYLER.map(d => el("span", "etiket", duzeyAdi(d[1]))));
+  tablo.appendChild(ust);
+  for (const { m, secim } of satirlar) {
+    const satir = el("div", "hafta-satir"), mac = el("button", "hafta-mac"); mac.type = "button";
+    mac.title = "Bu maçın bütün tahminlerini aç";
+    mac.append(el("b", "", m[0] + " – " + m[1]), el("span", "", macSaati(m) + (m[3] == null ? " · oran yok" : "")));
+    mac.addEventListener("click", () => { $("ev").value = m[0]; $("dep").value = m[1]; ciz(); $("skor").scrollIntoView({ behavior: "smooth", block: "center" }); });
+    satir.appendChild(mac);
+    for (const [k, ad] of DUZEYLER) {
+      const x = secim[k];
+      if (!x) { satir.appendChild(el("span", "secim-yok", "–")); continue; }
+      const secili = kupon.some(q => q.id === x.id && q.pazar === x.pazar && q.secim === x.secim);
+      const b = el("button", "secim-dugme"); b.type = "button"; b.setAttribute("aria-pressed", String(secili));
+      b.title = secili ? "Kupondan çıkar" : "Kupona ekle";
+      b.append(el("span", "duzey", ad), el("b", "", kisaPazar(x.pazar) + ": " + x.secim),
+               el("span", "", "%" + tr(x.ol * 100, 0) + " · oran " + tr(1 / x.ol, 2)));
+      b.addEventListener("click", () => kuponSec(x.lig, x.ev, x.dep, x.pazar, x.secim));
+      satir.appendChild(b);
+    }
+    tablo.appendChild(satir);
+  }
+}
+
 function kurCiz() {
   if (gun === null) gun = (GUNLER.find(g => havuz(g[0], false).length) || GUNLER[0])[0];
   const gunKutu = $("gunler"); gunKutu.textContent = "";
@@ -589,7 +683,7 @@ function kurCiz() {
     li.appendChild(ac);
     if (oneri) {
       const ol = varolan ? bacakOlasiligi(varolan) : oneri.ol;
-      const ekle = el("button", "dugme kucuk", (varolan ? "✓ " : "+ ") + oneri.pazar.replace(" Alt/Üst", "").replace("Maç Sonucu (1X2)", "Maç sonucu") +
+      const ekle = el("button", "dugme kucuk", (varolan ? "✓ " : "+ ") + kisaPazar(oneri.pazar) +
         ": " + oneri.secim + " · %" + Math.round(ol * 100));
       ekle.type = "button"; ekle.setAttribute("aria-pressed", String(!!varolan));
       ekle.title = varolan ? "Kupondan çıkar" : "Programın bu maçtaki önerisini kupona ekle";
@@ -622,6 +716,7 @@ function takimlariDoldur() {
     b.addEventListener("click", () => { $("ev").value = m[0]; $("dep").value = m[1]; ciz(); });
     kutu.appendChild(b);
   }
+  haftaCiz();
 }
 
 function ciz() {

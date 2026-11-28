@@ -506,6 +506,50 @@ def yazdir(ev, dep, lig_adi, mac_sayisi, son_tarih, sonuc, uyari=None, oran=None
     print()
 
 
+# Risk düzeyleri: seçim başına adil oran aralığı
+RISK = (("Düşük", 1.15, 1.45), ("Orta", 1.40, 1.85), ("Riskli", 1.60, 2.30))
+
+
+def en_iyi_secim(sonuc, alt, ust):
+    """Adil oranı [alt, ust] aralığına düşen en olası seçim: (pazar, seçenek, olasılık) ya da None."""
+    en = None
+    for baslik, secenekler in sonuc["pazarlar"]:
+        for ad, p in secenekler:
+            if p > 0 and alt <= 1 / p <= ust and (en is None or p > en[2]):
+                en = (baslik, ad, p)
+    return en
+
+
+def hafta_yazdir(kod, lig_adi, veri, lig_takimlari, kupa_mi, bugun):
+    """Ligin yaklaşan bütün maçları için üç risk düzeyinde programın seçimi."""
+    import avrupa
+    yaklasan = avrupa.lig_fiksturu(bugun, lig_takimlari)
+    yaklasan.update(yaklasan_ulusal())
+    if kupa_mi:
+        yaklasan.update(avrupa.yaklasan(veri, bugun))
+    maclar = sorted((v[3] or 0, k[1], k[2], v) for k, v in yaklasan.items() if k[0] == kod)
+    if not maclar:
+        sys.exit("%s için listede yaklaşan maç yok." % lig_adi)
+    model = avrupa.model_kur(veri, bugun) if kod in avrupa.KUPALAR else model_kur(veri["ulusal"][kod][1], bugun)
+    carpim = [1.0, 1.0, 1.0]
+    print("\n%s: yaklaşan %d maç" % (lig_adi, len(maclar)))
+    for _, ev, dep, v in maclar:
+        if ev not in model["huc"] or dep not in model["huc"]:
+            continue
+        sonuc = tahmin_et(model, ev, dep, v[1:3] if v[1] is not None else None)
+        print("\n  %s - %s  (%s%s)" % (ev, dep, v[0].strftime("%d.%m"), "" if v[1] is not None else ", oran yok"))
+        for i, (ad, alt, ust) in enumerate(RISK):
+            s = en_iyi_secim(sonuc, alt, ust)
+            if s:
+                carpim[i] *= s[2]
+                print("    %-7s %-42s %% %4.1f   oran %5.2f" % (ad, s[0] + ": " + s[1], 100 * s[2], 1 / s[2]))
+            else:
+                print("    %-7s bu aralıkta seçim yok" % ad)
+    print("\n  Hepsi tek kuponda tutma olasılığı: " +
+          ",  ".join("%s %%%.2f (oran %.1f)" % (RISK[i][0], 100 * c, 1 / c) for i, c in enumerate(carpim)))
+    print("  Oran = 1 / olasılık (komisyonsuz adil oran). İstatistiksel tahmindir.\n")
+
+
 def main():
     import avrupa                                # avrupa.py bu modülü kullanır
     ap = argparse.ArgumentParser(description="Futbol maç tahmini (ilk takım ev sahibi).")
@@ -513,13 +557,14 @@ def main():
     ap.add_argument("dep", nargs="?", help="deplasman takımı")
     ap.add_argument("--lig", help="lig kodu (ör. T1, E0, CL, EL, ECL); verilmezse otomatik bulunur")
     ap.add_argument("--takimlar", metavar="LIG", help="ligdeki takım adlarını listele")
+    ap.add_argument("--hafta", metavar="LIG", help="ligin yaklaşan maçları için düşük/orta/riskli seçimler")
     a = ap.parse_args()
 
     bugun = date.today()
     szn = sezonlar(bugun)
     kupa_adi = {k: v[0] for k, v in avrupa.KUPALAR.items()}
     tum_kodlar = ", ".join(list(LIGLER) + list(kupa_adi))
-    lig = (a.takimlar or a.lig or "").upper()
+    lig = (a.takimlar or a.hafta or a.lig or "").upper()
     if lig and lig not in LIGLER and lig not in kupa_adi:
         sys.exit("Lig bulunamadı: %s. Kodlar: %s" % (lig, tum_kodlar))
 
@@ -544,6 +589,10 @@ def main():
             sys.exit("Bu lig için veri indirilemedi: %s" % lig)
         print("%s:" % (LIGLER.get(lig) or kupa_adi[lig]))
         print(", ".join(lig_takimlari[lig]))
+        return
+
+    if a.hafta:
+        hafta_yazdir(lig, LIGLER.get(lig) or kupa_adi[lig], veri, lig_takimlari, bool(kupa_takim), bugun)
         return
 
     ev = a.ev or input("Ev sahibi takım: ").strip()

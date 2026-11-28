@@ -95,6 +95,11 @@ bölümünde gün ve lig süzgeci vardır; süzgece uyan başlamamış maçlarda
 program, seçilen maç sayısında (2–8) düşük, orta ya da yüksek riskli kupon
 seçer. Aynı maçlar listelenir; listeden tek tek eklenip karma kupon yapılabilir.
 
+"Haftanın maçları" bölümü seçili ligin yaklaşan bütün maçlarını listeler ve her
+maç için düşük, orta ve riskli düzeyde programın en olası seçimini verir; tek
+tek ya da bir düzeyin tamamı kupona alınabilir. Komut satırında aynısı:
+`python3 tahmin.py --hafta T1`.
+
 ```
 python3 web_olustur.py --tam index.html   # sablon.html + güncel veri
 ```
